@@ -1,0 +1,105 @@
+image: docker.i-run.fr/irun-compiler:20181123.01
+
+variables:
+  #GIT_SUBMODULE_STRATEGY: normal
+  # As of Maven 3.3.0 instead of this you may define these options in `.mvn/maven.config` so the same config is used
+  # when running from the command line.
+  # `installAtEnd` and `deployAtEnd` are only effective with recent version of the corresponding plugins.
+  MAVEN_CLI_OPTS: "--batch-mode -Dmaven.repo.local=${CI_PROJECT_DIR}/.m2/repository --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+  - ${CI_PROJECT_DIR}/.m2/repository/
+
+stages:
+- build
+- test
+- release
+- deploy
+- notify
+
+maven:build:
+  stage: build
+  script:
+  - mvn ${MAVEN_CLI_OPTS} clean compile
+  artifacts:
+    when: on_success
+    expire_in: 1 hour
+    untracked: true
+
+maven:checkstyle:
+  stage: test
+  dependencies:
+  - maven:build
+  cache:
+    policy: pull
+  script:
+  - mvn ${MAVEN_CLI_OPTS} install checkstyle:check -DskipTests
+
+maven:test:
+  stage: test
+  dependencies:
+  - maven:build
+  script: mvn ${MAVEN_CLI_OPTS} test
+  artifacts:
+    reports:
+      junit: [
+      ]
+
+maven:release:
+  stage: release
+  dependencies:
+  - maven:build
+  before_script:
+  - git checkout -B "$CI_BUILD_REF_NAME"
+  - mvn ${MAVEN_CLI_OPTS} -DdryRun=true release:prepare
+  - git clean -f
+  script: |
+    mvn ${MAVEN_CLI_OPTS} \
+      release:prepare \
+        -DtagNameFormat="@{version}" \
+        -DupdateDependencies=false \
+        -DscmCommentPrefix="[maven-release][skip CI] " \
+      release:perform \
+        -Darguments="-DskipTests=true" \
+        -Dmaven.javadoc.skip=true
+  when: manual
+  only:
+  - master
+
+maven:sonar:
+  stage: deploy
+  dependencies:
+    - maven:build
+  allow_failure: true
+  cache:
+    policy: pull
+  script:
+    - mvn ${MAVEN_CLI_OPTS} test sonar:sonar -Psonar
+  only:
+    - master
+
+maven:deploy:
+  stage: deploy
+  dependencies:
+  - maven:build
+  script: mvn ${MAVEN_CLI_OPTS} deploy
+
+slack:failure:
+  stage: notify
+  allow_failure: true
+  variables:
+    GIT_STRATEGY: none
+  script:
+  - curl -s -o "./user-mapping.sh" "https://gitlab.i-run.fr/share/snippet/snippets/9/raw"
+  - curl -s -o "./feature-fail.json" "https://gitlab.i-run.fr/share/snippet/snippets/8/raw"
+  - source "./user-mapping.sh"
+  - |
+    sed -e "s/\${committer}/${USERS[$GITLAB_USER_LOGIN]:-$GITLAB_USER_LOGIN}/g" \
+        -e "s/\${branch}/${CI_COMMIT_REF_NAME}/g" \
+        -e "s/\${commit}/${CI_COMMIT_SHA}/g" \
+        -e "s/\${message}/${CI_COMMIT_TITLE}/g" \
+        -e "s~\${joburl}~${CI_PROJECT_URL}/-/jobs/$((CI_JOB_ID - 1))~g" \
+    ./feature-fail.json | curl -s -X POST "https://hooks.slack.com/services/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" -H 'Content-Type:application/json' -d @-
+  when: on_failure
