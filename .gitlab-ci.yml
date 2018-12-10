@@ -22,7 +22,7 @@ stages:
 maven:build:
   stage: build
   script:
-  - mvn ${MAVEN_CLI_OPTS} clean compile
+  - mvn ${MAVEN_CLI_OPTS} clean compile -DskipTests
   artifacts:
     when: on_success
     expire_in: 1 hour
