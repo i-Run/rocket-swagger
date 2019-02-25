@@ -85,6 +85,9 @@ maven:deploy:
   dependencies:
   - maven:build
   script: mvn ${MAVEN_CLI_OPTS} deploy -DskipTests
+  only:
+    - develop
+    - master
 
 slack:failure:
   stage: notify
