@@ -1,4 +1,4 @@
-image: docker.i-run.fr/irun-compiler:20181123.01
+image: d.i-run.fr/irun-compiler:20190212.ad9ab9c2
 
 variables:
   #GIT_SUBMODULE_STRATEGY: normal
