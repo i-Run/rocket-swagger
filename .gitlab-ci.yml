@@ -78,7 +78,7 @@ maven:sonar:
   script:
     - mvn ${MAVEN_CLI_OPTS} test sonar:sonar -Psonar
   only:
-    - master
+    - develop
 
 maven:deploy:
   stage: deploy
