@@ -67,7 +67,7 @@ maven:release:
         -Dmaven.javadoc.skip=true
   when: manual
   only:
-  - master
+    - develop
 
 maven:sonar:
   stage: deploy
