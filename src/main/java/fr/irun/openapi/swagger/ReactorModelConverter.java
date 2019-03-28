@@ -132,8 +132,11 @@ public class ReactorModelConverter implements ModelConverter {
      */
     private Property getInnerTypeOfGenericProperty(Type type, ModelConverterContext context,
                                                    Annotation[] annotations, Iterator<ModelConverter> chain) {
-        ParameterizedType reactorType = (ParameterizedType) type;
-        Type innerType = reactorType.getActualTypeArguments()[0];
+        Type innerType = type;
+        if (type instanceof ParameterizedType) {
+            ParameterizedType reactorType = (ParameterizedType) type;
+            innerType = reactorType.getActualTypeArguments()[0];
+        }
         return baseConverter.resolveProperty(innerType, context, annotations, chain);
     }
 
