@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>fr.irun</groupId>
+        <artifactId>nora-parent</artifactId>
+        <version>3</version>
+    </parent>
+
+    <scm>
+        <connection>scm:git:git@gitlab.i-run.fr:nora/tooling/nora-swager.git</connection>
+        <developerConnection>scm:git:git@gitlab.i-run.fr:nora/tooling/nora-swager.git</developerConnection>
+        <url>https://gitlab.i-run.fr/nora/tooling/nora-swager.git</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <artifactId>swagger</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <openapi-generator.version>3.3.4</openapi-generator.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.openapitools</groupId>
+            <artifactId>openapi-generator-cli</artifactId>
+            <version>${openapi-generator.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>
