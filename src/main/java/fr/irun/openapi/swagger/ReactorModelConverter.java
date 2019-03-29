@@ -1,26 +1,21 @@
 package fr.irun.openapi.swagger;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
-import io.swagger.jackson.ModelResolver;
 import io.swagger.models.Model;
 import io.swagger.models.properties.ArrayProperty;
-import io.swagger.models.properties.DateTimeProperty;
 import io.swagger.models.properties.Property;
-import io.swagger.models.utils.PropertyModelConverter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.Iterator;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
 
 /**
  * Customized Model converter used to :
@@ -31,126 +26,152 @@ import java.util.regex.Pattern;
  */
 public class ReactorModelConverter implements ModelConverter {
 
-    /**
-     * Pattern for the extraction of the full name of a class.
-     */
-    private static final String FULL_CLASS_NAME_STRING_PATTERN = "([a-z]+\\.)+([A-Z][a-zA-Z]+)";
-    /**
-     * Pattern for the extraction of the full name of a class.
-     */
-    private static final Pattern FULL_CLASS_NAME_PATTERN = Pattern.compile(FULL_CLASS_NAME_STRING_PATTERN);
-    /**
-     * Default empty annotation array used as parameter.
-     */
-    private static final Annotation[] EMPTY_ANNOTATIONS_ARRAY = new Annotation[0];
+    private static final Logger LOGGER = LoggerFactory.getLogger(ReactorModelConverter.class);
 
-    /**
-     * Array of all the classes considered as DateTime for the conversion into Property.
-     */
-    private static final Class<?>[] DATE_CLASSES = {
-            Instant.class, LocalDateTime.class,
-    };
+    private static final String HEXAMON_ENTITY_FIELD_NAME = "entity";
 
     /**
      * Default ModelConverter used if this one does not manage a type.
      */
-    private final ModelConverter baseConverter = new ModelResolver(new ObjectMapper());
-
-    /**
-     * Default instance used to convert a swagger property to a swagger model.
-     */
-    private final PropertyModelConverter propertyModelConverter = new PropertyModelConverter();
+    private final ModelConverter baseConverter = new DateTimeModelConverter();
 
 
     @Override
     public Property resolveProperty(Type type, ModelConverterContext context,
                                     Annotation[] annotations, Iterator<ModelConverter> chain) {
         Property property = null;
-        if (type != null) {
-            // Case when the property is a date
-            if (isDateType(type)) {
-                property = new DateTimeProperty();
-            } else if (areSameGenericTypes(type, Flux.class)) {
-                // case when the property is a Flux<T> ==> convert to a T[]
-                Property innerProperty = getInnerTypeOfGenericProperty(type, context, annotations, chain);
-                property = new ArrayProperty().items(innerProperty);
-            } else if (areSameGenericTypes(type, Mono.class)) {
-                // Case when the property is a Mono<T> ==> convert to a T
-                property = getInnerTypeOfGenericProperty(type, context, annotations, chain);
-            }
-            // Otherwise, call the default ModelResolver.
-            if (property == null && chain.hasNext()) {
-                property = chain.next().resolveProperty(type, context, annotations, chain);
-            }
+
+        if (ModelConversionUtils.doesTypeMatchAnyClass(type, Flux.class)) {
+
+            trace("Detected Spring reactor type: " + type.getTypeName());
+            // case when the property is a Flux<T> ==> convert to a T[]
+            Property innerProperty = getInnerPropertyOfReactorType(type, context, annotations, chain);
+            property = new ArrayProperty().items(innerProperty);
+
+        } else if (ModelConversionUtils.doesTypeMatchAnyClass(type, Mono.class)) {
+
+            trace("Detected Spring reactor type: " + type.getTypeName());
+            // Case when the property is a Mono<T> ==> convert to a T
+            property = getInnerPropertyOfReactorType(type, context, annotations, chain);
         }
+
+        // The property could be null at the end of the conversion.
+        if (property == null) {
+            // Otherwise call the default model converter
+            property = baseConverter.resolveProperty(type, context, annotations, chain);
+        }
+
         return property;
     }
 
     /**
-     * Verify a type of property corresponds to a Date.
+     * Obtain the Parameter corresponding to an inner type of a reactor class (Mono or Flux).
      *
-     * @param propertyType the type of property.
-     * @return true if the type of the property corresponds to a date (Instant or LocalDateTime)
-     */
-    private boolean isDateType(Type propertyType) {
-        boolean isDate = false;
-        String propertyTypeName = propertyType.getTypeName();
-        Matcher matcher = FULL_CLASS_NAME_PATTERN.matcher(propertyTypeName);
-        // Extract the full class name with Regex because the name of the types are :
-        //   - For the class Instant: "[simple type, class java.time.Instant]"
-        //   - Fir the class LocalDateTime: "[simple type, class java.time.LocalDateTime]"
-        if (matcher.find()) {
-            String realTypeName = matcher.group();
-            isDate = Arrays.stream(DATE_CLASSES).anyMatch(dateClass -> dateClass.getTypeName().equals(realTypeName));
-        }
-        return isDate;
-    }
-
-    /**
-     * Check a generic type matches a class. Do not check the type of the inner class(es).
-     *
-     * @param propertyGenericType type of the input generic property.
-     * @param targetClass         Target class to check.
-     * @return true if the type matches the class.
-     */
-    private boolean areSameGenericTypes(Type propertyGenericType, Class<?> targetClass) {
-        String propertyTypeName = propertyGenericType.getTypeName();
-        // Split under '<' to match the generic types Flux and Mono:
-        // We do not care about the type of object managed by the Flux/Mono in this type.
-        String classTypeName = targetClass.getTypeName().split("<")[0];
-        return propertyTypeName.startsWith(classTypeName);
-    }
-
-    /**
-     * Obtain the Parameter corresponding to an inner type of a generic class.
-     *
-     * @param type        The type of the generic class.
+     * @param reactorType The type of the generic class.
      * @param context     Context of the converter
      * @param annotations Array of the annotations.
      * @param chain       Chain of converter to use.
      * @return The property relative to the type T if the input type corresponds to a class SomeGenericClass&lt;T.&gt;
      */
-    private Property getInnerTypeOfGenericProperty(Type type, ModelConverterContext context,
+    private Property getInnerPropertyOfReactorType(Type reactorType, ModelConverterContext context,
                                                    Annotation[] annotations, Iterator<ModelConverter> chain) {
-        Type innerType = type;
-        if (type instanceof ParameterizedType) {
-            ParameterizedType reactorType = (ParameterizedType) type;
-            innerType = reactorType.getActualTypeArguments()[0];
+        Property property;
+        Type reactorInnerType = ModelConversionUtils.extractGenericFirstInnerType(reactorType);
+
+        if (ModelConversionUtils.isHexamonEntityType(reactorInnerType)) {
+            property = computeHexamonEntityProperty(reactorInnerType, context, annotations, chain);
+        } else {
+            property = baseConverter.resolveProperty(reactorInnerType, context, annotations, chain);
         }
-        return baseConverter.resolveProperty(innerType, context, annotations, chain);
+
+        return property;
     }
+
+
+    private Property computeHexamonEntityProperty(Type entityType, ModelConverterContext context,
+                                                  Annotation[] annotations, Iterator<ModelConverter> chain) {
+        Property property = null;
+        Type innerEntityType = ModelConversionUtils.extractGenericFirstInnerType(entityType);
+
+        if (innerEntityType != null) {
+            property = baseConverter.resolveProperty(innerEntityType, context, annotations, chain);
+        }
+        return property;
+    }
+
+
+    private String entityFieldName(Map.Entry<String, ?> entry) {
+        return "_" + entry.getKey();
+    }
+
 
     @Override
     public Model resolve(Type type, ModelConverterContext modelConverterContext, Iterator<ModelConverter> iterator) {
-        Property property = resolveProperty(type, modelConverterContext, EMPTY_ANNOTATIONS_ARRAY, iterator);
-        Model model;
+        Model outModel = null;
 
-        if (property == null) {
-            model = baseConverter.resolve(type, modelConverterContext, iterator);
-        } else {
-            model = propertyModelConverter.propertyToModel(property);
+        Type realUsedType = type;
+        // Do not consider the Mono and Flux classes.
+        if (ModelConversionUtils.doesTypeMatchAnyClass(type, Flux.class, Mono.class)) {
+            trace("Detected Reactor type: " + type);
+            realUsedType = ModelConversionUtils.extractGenericFirstInnerType(type);
         }
-        return model;
+        if (realUsedType != null && ModelConversionUtils.isHexamonEntityType(realUsedType)) {
+            trace("Detected Entity type: " + realUsedType);
+            outModel = resolveHexamonEntityModel(realUsedType, modelConverterContext, iterator);
+        }
+
+        if (outModel == null) {
+            outModel = baseConverter.resolve(type, modelConverterContext, iterator);
+        }
+        return outModel;
+    }
+
+    private Model resolveHexamonEntityModel(Type hexamonEntityType,
+                                            ModelConverterContext modelConverterContext,
+                                            Iterator<ModelConverter> iterator) {
+        Model outModel = null;
+        Type innerEntityType = ModelConversionUtils.extractGenericFirstInnerType(hexamonEntityType);
+
+        JavaType realInnerType = constructEntityType(hexamonEntityType, innerEntityType);
+
+        if (realInnerType != null) {
+            outModel = baseConverter.resolve(realInnerType, modelConverterContext, iterator);
+        }
+        return outModel;
+    }
+
+
+    private JavaType constructEntityType(Type hexamonEntityType, Type innerEntityType) {
+        JavaType hexamonEntityJavaType = constructJavaType(hexamonEntityType);
+        JavaType innerEntityJavaType = constructJavaType(innerEntityType);
+
+        JavaType outputType = null;
+        if (hexamonEntityJavaType != null && innerEntityJavaType != null) {
+            outputType = TypeFactory.defaultInstance()
+                    .constructSimpleType(hexamonEntityJavaType.getRawClass(), new JavaType[]{innerEntityJavaType});
+        }
+        return outputType;
+    }
+
+
+    private JavaType constructJavaType(Type inputType) {
+        JavaType javaType = null;
+        if (inputType != null) {
+            javaType = TypeFactory.defaultInstance().constructType(inputType);
+        }
+        return javaType;
+    }
+
+
+    /**
+     * Trace log if trace is enabled
+     *
+     * @param message message to trace.
+     */
+    private static void trace(String message) {
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace(message);
+        }
     }
 
 }
