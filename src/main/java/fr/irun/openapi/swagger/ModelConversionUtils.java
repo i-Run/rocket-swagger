@@ -1,5 +1,8 @@
 package fr.irun.openapi.swagger;
 
+import com.fasterxml.jackson.databind.type.SimpleType;
+import com.fasterxml.jackson.databind.type.TypeBindings;
+
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.time.Instant;
@@ -47,6 +50,8 @@ final class ModelConversionUtils {
      * @return true if the type of the property corresponds to a date (Instant or LocalDateTime)
      */
     static boolean isDateType(Type propertyType) {
+        // SimpleType.getTypeName() returns: "[Simple class, java.time.Instant]"
+        // -> use a regex in order to extract the real class name.
         String className = getFullClassName(propertyType);
         return Arrays.stream(DATE_CLASSES).anyMatch(dateClass -> dateClass.getTypeName().equals(className));
     }
@@ -115,6 +120,11 @@ final class ModelConversionUtils {
             final Type[] innerTypes = ((ParameterizedType) genericType).getActualTypeArguments();
             if (innerTypes.length > 0) {
                 result = innerTypes[0];
+            }
+        } else if (genericType instanceof SimpleType) {
+            TypeBindings bindings = ((SimpleType) genericType).getBindings();
+            if (!bindings.isEmpty()) {
+                result = bindings.getBoundType(0);
             }
         }
         return result;

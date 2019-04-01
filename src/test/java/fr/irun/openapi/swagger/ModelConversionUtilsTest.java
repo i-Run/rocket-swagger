@@ -1,11 +1,14 @@
 package fr.irun.openapi.swagger;
 
-import fr.irun.openapi.swagger.ModelConversionUtils;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import fr.irun.openapi.swagger.mock.ParameterizedTypeMock;
 import fr.irun.openapi.swagger.mock.TypeMock;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
+import java.lang.reflect.Type;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -59,7 +62,7 @@ class ModelConversionUtilsTest {
     }
 
     @Test
-    void testExtractGenericFirstInnerType() {
+    void testExtractGenericFirstInnerTypeParameterizedType() {
         ParameterizedTypeMock paramType = new ParameterizedTypeMock(String.class, Integer.class);
         assertThat(ModelConversionUtils.extractGenericFirstInnerType(paramType)).isEqualTo(String.class);
 
@@ -70,6 +73,20 @@ class ModelConversionUtilsTest {
         assertThat(ModelConversionUtils.extractGenericFirstInnerType(notGenericType)).isNull();
 
         assertThat(ModelConversionUtils.extractGenericFirstInnerType(null)).isNull();
+    }
+
+
+    @Test
+    void testExtractGenericFirstInnerTypeSimpleType() {
+        final JavaType innerType = TypeFactory.defaultInstance().constructType(Integer.class);
+        final Type genericType = TypeFactory.defaultInstance().constructSimpleType(Mono.class, new JavaType[]{innerType});
+
+        final Type notNullType = ModelConversionUtils.extractGenericFirstInnerType(genericType);
+        assertThat(notNullType).isNotNull();
+        assertThat(notNullType).isEqualTo(innerType);
+
+        final Type nonGenericType = TypeFactory.defaultInstance().constructSimpleType(String.class, new JavaType[0]);
+        assertThat(ModelConversionUtils.extractGenericFirstInnerType(nonGenericType)).isNull();
     }
 
 }
