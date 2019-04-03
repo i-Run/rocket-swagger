@@ -8,7 +8,4 @@ public class RocketSwaggerException extends RuntimeException {
         super(message);
     }
 
-    public RocketSwaggerException(String message, Throwable cause) {
-        super(message, cause);
-    }
 }

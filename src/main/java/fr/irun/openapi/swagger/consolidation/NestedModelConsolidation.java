@@ -74,16 +74,14 @@ public class NestedModelConsolidation implements ModelConsolidation {
         final Type innerType = ModelConversionUtils.extractGenericFirstInnerType(nestedType);
 
         if (model != null && innerType != null) {
-            JavaType innerJavaType = typeFactory.constructType(innerType);
-
             final String baseModelReference = model.getReference();
             final String baseModelName = ModelConversionUtils.extractLastSplitResult(baseModelReference, REFERENCE_SEPARATOR);
-
             ModelImpl outModel = ModelConversionUtils.copyModel(
                     baseModelName + NESTED_SUFFIX,
                     baseModelReference + NESTED_SUFFIX,
                     model);
 
+            JavaType innerJavaType = typeFactory.constructType(innerType);
             fillModelWithNestedFields(outModel, innerJavaType, context, converterIterator);
             return outModel;
         }

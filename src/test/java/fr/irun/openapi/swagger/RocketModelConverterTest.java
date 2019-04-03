@@ -45,6 +45,8 @@ class RocketModelConverterTest {
     private static final Iterator<ModelConverter> ITERATOR = Iterators.forArray(new ModelConverter[0]);
     private static final Annotation[] ANNOTATIONS = new Annotation[0];
 
+    private static final TypeFactory TYPE_FACTORY = TypeFactory.defaultInstance();
+
     private ModelConsolidation fluxModelConsolidation;
     private ModelConsolidation entityModelConsolidation;
     private ModelConsolidation nestedModelConsolidation;
@@ -52,7 +54,7 @@ class RocketModelConverterTest {
     private ModelConsolidation standardModelConsolidation;
 
     private ModelConverterContext context;
-    private TypeFactory typeFactory;
+
 
     private RocketModelConverter tested;
 
@@ -63,10 +65,7 @@ class RocketModelConverterTest {
         nestedModelConsolidation = mock(ModelConsolidation.class);
         monoModelConsolidation = mock(ModelConsolidation.class);
         standardModelConsolidation = mock(ModelConsolidation.class);
-
         context = mock(ModelConverterContext.class);
-        // Cannot be mocked since final
-        typeFactory = TypeFactory.defaultInstance();
 
         // types
         when(fluxModelConsolidation.getModelType()).thenReturn(ModelEnum.FLUX);
@@ -78,8 +77,7 @@ class RocketModelConverterTest {
         tested = new RocketModelConverter(
                 Arrays.asList(fluxModelConsolidation, entityModelConsolidation,
                         nestedModelConsolidation, monoModelConsolidation,
-                        standardModelConsolidation),
-                typeFactory);
+                        standardModelConsolidation));
     }
 
     @Test
@@ -88,7 +86,7 @@ class RocketModelConverterTest {
         when(standardModelConsolidation.consolidateProperty(any()))
                 .thenReturn(expectedOutProperty);
 
-        final Type type = typeFactory.constructType(PojoMock.class);
+        final Type type = TYPE_FACTORY.constructType(PojoMock.class);
         Property property = tested.resolveProperty(type, context, ANNOTATIONS, ITERATOR);
 
         assertThat(property).isNotNull();
@@ -110,7 +108,7 @@ class RocketModelConverterTest {
         final RefModel expectedOutModel = new RefModel();
         when(standardModelConsolidation.consolidateModel(any())).thenReturn(expectedOutModel);
 
-        final Type type = typeFactory.constructType(PojoMock.class);
+        final Type type = TYPE_FACTORY.constructType(PojoMock.class);
         Model outModel = tested.resolve(type, context, ITERATOR);
 
         assertThat(outModel).isNotNull();
@@ -133,7 +131,7 @@ class RocketModelConverterTest {
         final RefProperty expectedOutProperty = new RefProperty();
         when(standardModelConsolidation.consolidateProperty(any()))
                 .thenReturn(expectedOutProperty);
-        final Type innerType = typeFactory.constructType(PojoMock.class);
+        final Type innerType = TYPE_FACTORY.constructType(PojoMock.class);
         final Type genericType = new ParameterizedTypeMock(GenericMock.class.getName(), innerType);
         Property property = tested.resolveProperty(genericType, context, ANNOTATIONS, ITERATOR);
 
@@ -156,7 +154,7 @@ class RocketModelConverterTest {
         final RefModel expectedOutModel = new RefModel();
         when(standardModelConsolidation.consolidateModel(any())).thenReturn(expectedOutModel);
 
-        final Type innerType = typeFactory.constructType(PojoMock.class);
+        final Type innerType = TYPE_FACTORY.constructType(PojoMock.class);
         final Type genericType = new ParameterizedTypeMock(GenericMock.class.getName(), innerType);
         Model outModel = tested.resolve(genericType, context, ITERATOR);
 
@@ -183,8 +181,8 @@ class RocketModelConverterTest {
                 .thenReturn(baseProperty);
         when(monoModelConsolidation.consolidateProperty(any())).thenReturn(monoProperty);
 
-        final JavaType innerType = typeFactory.constructType(PojoMock.class);
-        final Type monoType = typeFactory.constructSimpleType(Mono.class, new JavaType[]{innerType});
+        final JavaType innerType = TYPE_FACTORY.constructType(PojoMock.class);
+        final Type monoType = TYPE_FACTORY.constructSimpleType(Mono.class, new JavaType[]{innerType});
         Property property = tested.resolveProperty(monoType, context, ANNOTATIONS, ITERATOR);
 
         assertThat(property).isNotNull();
@@ -208,8 +206,8 @@ class RocketModelConverterTest {
         when(standardModelConsolidation.consolidateModel(any())).thenReturn(baseModel);
         when(monoModelConsolidation.consolidateModel(any())).thenReturn(monoModel);
 
-        final JavaType innerType = typeFactory.constructType(PojoMock.class);
-        final Type monoType = typeFactory.constructSimpleType(Mono.class, new JavaType[]{innerType});
+        final JavaType innerType = TYPE_FACTORY.constructType(PojoMock.class);
+        final Type monoType = TYPE_FACTORY.constructSimpleType(Mono.class, new JavaType[]{innerType});
         Model outModel = tested.resolve(monoType, context, ITERATOR);
 
         assertThat(outModel).isNotNull();
@@ -233,8 +231,8 @@ class RocketModelConverterTest {
         when(standardModelConsolidation.consolidateProperty(any())).thenReturn(baseProperty);
         when(fluxModelConsolidation.consolidateProperty(any())).thenReturn(fluxProperty);
 
-        final JavaType innerType = typeFactory.constructType(PojoMock.class);
-        final Type fluxType = typeFactory.constructSimpleType(Flux.class, new JavaType[]{innerType});
+        final JavaType innerType = TYPE_FACTORY.constructType(PojoMock.class);
+        final Type fluxType = TYPE_FACTORY.constructSimpleType(Flux.class, new JavaType[]{innerType});
         Property property = tested.resolveProperty(fluxType, context, ANNOTATIONS, ITERATOR);
 
         assertThat(property).isNotNull();
@@ -258,8 +256,8 @@ class RocketModelConverterTest {
         when(standardModelConsolidation.consolidateModel(any())).thenReturn(baseModel);
         when(fluxModelConsolidation.consolidateModel(any())).thenReturn(fluxModel);
 
-        final JavaType innerType = typeFactory.constructType(PojoMock.class);
-        final Type fluxType = typeFactory.constructSimpleType(Flux.class, new JavaType[]{innerType});
+        final JavaType innerType = TYPE_FACTORY.constructType(PojoMock.class);
+        final Type fluxType = TYPE_FACTORY.constructSimpleType(Flux.class, new JavaType[]{innerType});
         Model outModel = tested.resolve(fluxType, context, ITERATOR);
 
         assertThat(outModel).isNotNull();
@@ -283,7 +281,7 @@ class RocketModelConverterTest {
         when(standardModelConsolidation.consolidateProperty(any())).thenReturn(baseProperty);
         when(entityModelConsolidation.consolidateProperty(any())).thenReturn(entityProperty);
 
-        final JavaType innerType = typeFactory.constructType(PojoMock.class);
+        final JavaType innerType = TYPE_FACTORY.constructType(PojoMock.class);
         final Type entityType = new ParameterizedTypeMock(HEXAMON_ENTITY_CLASS_NAME, innerType);
         Property property = tested.resolveProperty(entityType, context, ANNOTATIONS, ITERATOR);
 
@@ -308,7 +306,7 @@ class RocketModelConverterTest {
         when(standardModelConsolidation.consolidateModel(any())).thenReturn(baseModel);
         when(entityModelConsolidation.consolidateModel(any())).thenReturn(entityModel);
 
-        final JavaType innerType = typeFactory.constructType(PojoMock.class);
+        final JavaType innerType = TYPE_FACTORY.constructType(PojoMock.class);
         final Type entityType = new ParameterizedTypeMock(HEXAMON_ENTITY_CLASS_NAME, innerType);
         Model outModel = tested.resolve(entityType, context, ITERATOR);
 
@@ -334,7 +332,7 @@ class RocketModelConverterTest {
         when(standardModelConsolidation.consolidateProperty(any())).thenReturn(baseProperty);
         when(nestedModelConsolidation.consolidateProperty(any())).thenReturn(nestedProperty);
 
-        final JavaType innerType = typeFactory.constructType(PojoMock.class);
+        final JavaType innerType = TYPE_FACTORY.constructType(PojoMock.class);
         final Type nestedType = new ParameterizedTypeMock(CMS_NESTED_CLASS_NAME, innerType);
         Property property = tested.resolveProperty(nestedType, context, ANNOTATIONS, ITERATOR);
 
@@ -359,7 +357,7 @@ class RocketModelConverterTest {
         when(standardModelConsolidation.consolidateModel(any())).thenReturn(baseModel);
         when(nestedModelConsolidation.consolidateModel(any())).thenReturn(nestedModel);
 
-        final JavaType innerType = typeFactory.constructType(PojoMock.class);
+        final JavaType innerType = TYPE_FACTORY.constructType(PojoMock.class);
         final Type nestedType = new ParameterizedTypeMock(CMS_NESTED_CLASS_NAME, innerType);
         Model outModel = tested.resolve(nestedType, context, ITERATOR);
 
@@ -391,7 +389,7 @@ class RocketModelConverterTest {
         when(nestedModelConsolidation.consolidateProperty(any())).thenReturn(nestedProperty);
         when(monoModelConsolidation.consolidateProperty(any())).thenReturn(monoProperty);
 
-        final JavaType baseType = typeFactory.constructType(PojoMock.class);
+        final JavaType baseType = TYPE_FACTORY.constructType(PojoMock.class);
         final Type entityType = new ParameterizedTypeMock(HEXAMON_ENTITY_CLASS_NAME, baseType);
         final Type nestedType = new ParameterizedTypeMock(CMS_NESTED_CLASS_NAME, entityType);
         final Type monoType = new ParameterizedTypeMock(Mono.class.getName(), nestedType);
@@ -425,7 +423,7 @@ class RocketModelConverterTest {
         when(nestedModelConsolidation.consolidateModel(any())).thenReturn(nestedModel);
         when(monoModelConsolidation.consolidateModel(any())).thenReturn(monoModel);
 
-        final JavaType baseType = typeFactory.constructType(PojoMock.class);
+        final JavaType baseType = TYPE_FACTORY.constructType(PojoMock.class);
         final Type entityType = new ParameterizedTypeMock(HEXAMON_ENTITY_CLASS_NAME, baseType);
         final Type nestedType = new ParameterizedTypeMock(CMS_NESTED_CLASS_NAME, entityType);
         final Type monoType = new ParameterizedTypeMock(Mono.class.getName(), nestedType);
@@ -460,7 +458,7 @@ class RocketModelConverterTest {
         when(nestedModelConsolidation.consolidateProperty(any())).thenReturn(nestedProperty);
         when(fluxModelConsolidation.consolidateProperty(any())).thenReturn(fluxProperty);
 
-        final JavaType baseType = typeFactory.constructType(PojoMock.class);
+        final JavaType baseType = TYPE_FACTORY.constructType(PojoMock.class);
         final Type entityType = new ParameterizedTypeMock(HEXAMON_ENTITY_CLASS_NAME, baseType);
         final Type nestedType = new ParameterizedTypeMock(CMS_NESTED_CLASS_NAME, entityType);
         final Type fluxType = new ParameterizedTypeMock(Flux.class.getName(), nestedType);
@@ -494,7 +492,7 @@ class RocketModelConverterTest {
         when(nestedModelConsolidation.consolidateModel(any())).thenReturn(nestedModel);
         when(fluxModelConsolidation.consolidateModel(any())).thenReturn(fluxModel);
 
-        final JavaType baseType = typeFactory.constructType(PojoMock.class);
+        final JavaType baseType = TYPE_FACTORY.constructType(PojoMock.class);
         final Type entityType = new ParameterizedTypeMock(HEXAMON_ENTITY_CLASS_NAME, baseType);
         final Type nestedType = new ParameterizedTypeMock(CMS_NESTED_CLASS_NAME, entityType);
         final Type fluxType = new ParameterizedTypeMock(Flux.class.getName(), nestedType);
@@ -518,14 +516,14 @@ class RocketModelConverterTest {
 
     @Test
     void resolvePropertyNoModelConsolidation() {
-        tested = new RocketModelConverter(new ArrayList<>(0), TypeFactory.defaultInstance());
+        tested = new RocketModelConverter(new ArrayList<>(0));
 
         assertThrows(RocketSwaggerException.class, () -> tested.resolveProperty(String.class, context, ANNOTATIONS, ITERATOR));
     }
 
     @Test
     void resolveNoModelConsolidation() {
-        tested = new RocketModelConverter(new ArrayList<>(0), TypeFactory.defaultInstance());
+        tested = new RocketModelConverter(new ArrayList<>(0));
 
         assertThrows(RocketSwaggerException.class, () -> tested.resolve(String.class, context, ITERATOR));
     }

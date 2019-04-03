@@ -1,6 +1,5 @@
 package fr.irun.openapi.swagger;
 
-import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.common.base.Functions;
 import fr.irun.openapi.swagger.consolidation.EntityModelConsolidation;
 import fr.irun.openapi.swagger.consolidation.FluxModelConsolidation;
@@ -34,8 +33,6 @@ public class RocketModelConverter implements ModelConverter {
 
     private final Map<ModelEnum, ModelConsolidation> consolidationMap;
 
-    private final TypeFactory typeFactory;
-
     /**
      * Default constructor used by swagger-maven-plugin.
      */
@@ -46,21 +43,17 @@ public class RocketModelConverter implements ModelConverter {
                 new FluxModelConsolidation(),
                 new NestedModelConsolidation(),
                 new EntityModelConsolidation()
-                ),
-                TypeFactory.defaultInstance());
+        ));
     }
 
     /**
      * For unit testing.
      *
      * @param consolidations all the consolidations to use..
-     * @param typeFactory    Factory of the types.
      */
-    RocketModelConverter(Collection<ModelConsolidation> consolidations,
-                         TypeFactory typeFactory) {
+    RocketModelConverter(Collection<ModelConsolidation> consolidations) {
         this.consolidationMap = consolidations.stream()
                 .collect(Collectors.toMap(ModelConsolidation::getModelType, Functions.identity()));
-        this.typeFactory = typeFactory;
     }
 
     @Override

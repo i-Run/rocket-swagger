@@ -73,16 +73,15 @@ public class EntityModelConsolidation implements ModelConsolidation {
         Type innerElementType = ModelConversionUtils.extractGenericFirstInnerType(entityType);
 
         if (model != null && innerElementType != null) {
-            Class<?> entityClass = typeFactory.constructType(entityType).getRawClass();
-            Class<?> innerClass = typeFactory.constructType(innerElementType).getRawClass();
-
             final String baseModelReference = model.getReference();
             final String baseModelName = ModelConversionUtils.extractLastSplitResult(baseModelReference, REFERENCE_SEPARATOR);
-
             ModelImpl outputModel = ModelConversionUtils.copyModel(
                     baseModelName + ENTITY_SUFFIX,
                     baseModelReference + ENTITY_SUFFIX,
                     model);
+
+            Class<?> entityClass = typeFactory.constructType(entityType).getRawClass();
+            Class<?> innerClass = typeFactory.constructType(innerElementType).getRawClass();
             putEntityClassPropertiesInModel(entityClass, outputModel, context, converterIterator);
             putPojoClassPropertiesInModel(innerClass, outputModel, context, converterIterator);
             return outputModel;
