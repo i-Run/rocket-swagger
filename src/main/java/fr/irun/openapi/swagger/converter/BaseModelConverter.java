@@ -8,7 +8,6 @@ import io.swagger.jackson.ModelResolver;
 import io.swagger.models.Model;
 import io.swagger.models.properties.DateTimeProperty;
 import io.swagger.models.properties.MapProperty;
-import io.swagger.models.properties.ObjectProperty;
 import io.swagger.models.properties.Property;
 import io.swagger.models.properties.StringProperty;
 import io.swagger.models.utils.PropertyModelConverter;

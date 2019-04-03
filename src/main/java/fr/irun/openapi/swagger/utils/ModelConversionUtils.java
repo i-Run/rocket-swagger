@@ -57,7 +57,7 @@ public final class ModelConversionUtils {
      * Array of all the classes considered as DateTime for the conversion into Property.
      */
     private static final Class<?>[] DATE_CLASSES = {
-            Instant.class, LocalDateTime.class, java.util.Date.class, java.sql.Date.class
+            Instant.class, LocalDateTime.class, java.util.Date.class, java.sql.Date.class,
     };
 
     /**
