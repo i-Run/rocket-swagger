@@ -1,11 +1,13 @@
 package fr.irun.openapi.swagger.converter;
 
-import fr.irun.openapi.swagger.converter.DateTimeModelConverter;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
 import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.DateTimeProperty;
+import io.swagger.models.properties.MapProperty;
+import io.swagger.models.properties.ObjectProperty;
 import io.swagger.models.properties.Property;
 import io.swagger.models.properties.RefProperty;
 import io.swagger.models.utils.PropertyModelConverter;
@@ -27,7 +29,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class DateTimeModelConverterTest {
+class BaseModelConverterTest {
 
     private static final Annotation[] DEFAULT_ANNOTATIONS = new Annotation[0];
 
@@ -36,7 +38,7 @@ class DateTimeModelConverterTest {
     private ModelConverterContext converterContext;
     private Iterator<ModelConverter> iterator;
 
-    private DateTimeModelConverter tested;
+    private BaseModelConverter tested;
 
     @BeforeEach
     void setUp() {
@@ -45,7 +47,7 @@ class DateTimeModelConverterTest {
         converterContext = mock(ModelConverterContext.class);
         iterator = Collections.singletonList(baseModelConverter).iterator();
 
-        tested = new DateTimeModelConverter(propertyModelConverter, baseModelConverter);
+        tested = new BaseModelConverter(propertyModelConverter, baseModelConverter);
     }
 
     @Test
@@ -76,6 +78,15 @@ class DateTimeModelConverterTest {
         assertThat(property).isNotNull();
         assertThat(property).isSameAs(expectedOutProperty);
         verify(baseModelConverter).resolveProperty(eq(String.class), eq(converterContext), eq(DEFAULT_ANNOTATIONS), eq(iterator));
+    }
+
+    @Test
+    void resolvePropertyJsonNode() {
+        Property property = tested.resolveProperty(JsonNode.class, converterContext, DEFAULT_ANNOTATIONS, iterator);
+
+        assertThat(property).isNotNull();
+        assertThat(property).isInstanceOf(MapProperty.class);
+        verify(baseModelConverter, never()).resolve(any(), any(), any());
     }
 
     @Test

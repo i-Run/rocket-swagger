@@ -2,7 +2,7 @@ package fr.irun.openapi.swagger.consolidation;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
-import fr.irun.openapi.swagger.converter.DateTimeModelConverter;
+import fr.irun.openapi.swagger.converter.BaseModelConverter;
 import fr.irun.openapi.swagger.utils.ModelConversionUtils;
 import fr.irun.openapi.swagger.utils.ModelEnum;
 import io.swagger.converter.ModelConverter;
@@ -38,7 +38,7 @@ public class NestedModelConsolidation implements ModelConsolidation {
     private Iterator<ModelConverter> converterIterator;
 
     public NestedModelConsolidation() {
-        this(TypeFactory.defaultInstance(), new DateTimeModelConverter());
+        this(TypeFactory.defaultInstance(), new BaseModelConverter());
     }
 
     NestedModelConsolidation(TypeFactory typeFactory, ModelConverter baseConverter) {

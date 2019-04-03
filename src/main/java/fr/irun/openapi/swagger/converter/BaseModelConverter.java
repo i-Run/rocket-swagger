@@ -7,7 +7,10 @@ import io.swagger.converter.ModelConverterContext;
 import io.swagger.jackson.ModelResolver;
 import io.swagger.models.Model;
 import io.swagger.models.properties.DateTimeProperty;
+import io.swagger.models.properties.MapProperty;
+import io.swagger.models.properties.ObjectProperty;
 import io.swagger.models.properties.Property;
+import io.swagger.models.properties.StringProperty;
 import io.swagger.models.utils.PropertyModelConverter;
 
 import java.lang.annotation.Annotation;
@@ -15,9 +18,9 @@ import java.lang.reflect.Type;
 import java.util.Iterator;
 
 /**
- * Model converter : include the default conversion and the management of the DateTime.
+ * Model converter : include the default conversion and the management of the dates and not resolvable types.
  */
-public final class DateTimeModelConverter implements ModelConverter {
+public final class BaseModelConverter implements ModelConverter {
 
     /**
      * Default instance used to convert a swagger property to a swagger model.
@@ -29,11 +32,11 @@ public final class DateTimeModelConverter implements ModelConverter {
      */
     private final ModelConverter baseConverter;
 
-    public DateTimeModelConverter() {
+    public BaseModelConverter() {
         this(new PropertyModelConverter(), new ModelResolver(new ObjectMapper()));
     }
 
-    DateTimeModelConverter(PropertyModelConverter propertyModelConverter, ModelConverter modelConverter) {
+    BaseModelConverter(PropertyModelConverter propertyModelConverter, ModelConverter modelConverter) {
         this.propertyModelConverter = propertyModelConverter;
         baseConverter = modelConverter;
     }
@@ -46,6 +49,9 @@ public final class DateTimeModelConverter implements ModelConverter {
         if (type != null) {
             if (ModelConversionUtils.isDateType(type)) {
                 property = new DateTimeProperty();
+            } else if (ModelConversionUtils.isUnresolvableType(type)) {
+                property = new MapProperty(new StringProperty());
+
             } else {
                 property = baseConverter.resolveProperty(type, modelConverterContext, annotations, iterator);
             }

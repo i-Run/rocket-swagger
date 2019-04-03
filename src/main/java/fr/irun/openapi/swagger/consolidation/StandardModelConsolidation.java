@@ -1,6 +1,6 @@
 package fr.irun.openapi.swagger.consolidation;
 
-import fr.irun.openapi.swagger.converter.DateTimeModelConverter;
+import fr.irun.openapi.swagger.converter.BaseModelConverter;
 import fr.irun.openapi.swagger.utils.ModelEnum;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
@@ -28,7 +28,7 @@ public class StandardModelConsolidation implements ModelConsolidation {
     private Iterator<ModelConverter> converterChain;
 
     public StandardModelConsolidation() {
-        this(new DateTimeModelConverter());
+        this(new BaseModelConverter());
     }
 
     StandardModelConsolidation(ModelConverter baseModelConverter) {

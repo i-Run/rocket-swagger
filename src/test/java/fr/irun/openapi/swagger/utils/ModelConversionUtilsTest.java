@@ -1,6 +1,7 @@
 package fr.irun.openapi.swagger.utils;
 
 import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import fr.irun.openapi.swagger.mock.EntityMock;
 import fr.irun.openapi.swagger.mock.ParameterizedTypeMock;
@@ -27,8 +28,8 @@ class ModelConversionUtilsTest {
         assertThat(ModelConversionUtils.isDateType(Instant.class)).isTrue();
         assertThat(ModelConversionUtils.isDateType(LocalDateTime.class)).isTrue();
         // LocalDateTime and Instant only
-        assertThat(ModelConversionUtils.isDateType(Date.class)).isFalse();
-        assertThat(ModelConversionUtils.isDateType(java.sql.Date.class)).isFalse();
+        assertThat(ModelConversionUtils.isDateType(Date.class)).isTrue();
+        assertThat(ModelConversionUtils.isDateType(java.sql.Date.class)).isTrue();
         assertThat(ModelConversionUtils.isDateType(String.class)).isFalse();
         assertThat(ModelConversionUtils.isDateType(null)).isFalse();
     }
@@ -131,6 +132,13 @@ class ModelConversionUtilsTest {
                 .isEqualTo("");
         assertThat(ModelConversionUtils.extractLastSplitResult(null, "/"))
                 .isEqualTo("");
+    }
+
+    @Test
+    void isUnresolvableType() {
+        assertThat(ModelConversionUtils.isUnresolvableType(JsonNode.class)).isTrue();
+        assertThat(ModelConversionUtils.isUnresolvableType(new TypeMock("[Simple type, " + JsonNode.class + "]"))).isTrue();
+        assertThat(ModelConversionUtils.isUnresolvableType(EntityMock.class)).isFalse();
     }
 
 }
