@@ -68,14 +68,13 @@ public class RocketModelConverter implements ModelConverter {
                                     ModelConverterContext modelConverterContext,
                                     Annotation[] annotations,
                                     Iterator<ModelConverter> iterator) {
-
         List<Type> typesToResolve = ModelConversionUtils.extractInnerTypesReversed(type);
         checkTypesToResolve(type, typesToResolve);
         List<ModelTypePair> modelTypePairList = computeModelTypesToConsolidate(typesToResolve);
 
         Property outProperty = null;
         for (ModelTypePair pair : modelTypePairList) {
-            final ModelConsolidation modelConsolidation = modelConsolidation(pair.model);
+            final ModelConsolidation modelConsolidation = getConsolidationForModel(pair.model);
             modelConsolidation.setContext(pair.type, modelConverterContext, annotations, iterator);
             outProperty = modelConsolidation.consolidateProperty(outProperty);
         }
@@ -90,14 +89,14 @@ public class RocketModelConverter implements ModelConverter {
 
         Model outModel = null;
         for (ModelTypePair pair : modelTypePairList) {
-            final ModelConsolidation modelConsolidation = modelConsolidation(pair.model);
+            final ModelConsolidation modelConsolidation = getConsolidationForModel(pair.model);
             modelConsolidation.setContext(pair.type, modelConverterContext, null, iterator);
             outModel = modelConsolidation.consolidateModel(outModel);
         }
         return outModel;
     }
 
-    private ModelConsolidation modelConsolidation(ModelEnum modelType) {
+    private ModelConsolidation getConsolidationForModel(ModelEnum modelType) {
         ModelConsolidation modelConsolidation = this.consolidationMap.get(modelType);
         if (modelConsolidation == null) {
             throw new RocketSwaggerException("Unable to find model consolidation for model type: " + modelType);
@@ -117,13 +116,12 @@ public class RocketModelConverter implements ModelConverter {
     }
 
     private List<ModelTypePair> computeModelTypesToConsolidate(List<Type> typesToResolve) {
-        // Associate Model and Type
-        List<ModelTypePair> list = typesToResolve.stream()
+        // Associate Model and Type into a Pair.
+        return typesToResolve.stream()
                 .map(type -> ModelTypePair.builder()
                         .model(ModelConversionUtils.computeModelType(type))
                         .type(type)
                         .build())
                 .collect(Collectors.toList());
-        return list;
     }
 }

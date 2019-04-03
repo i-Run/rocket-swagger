@@ -23,21 +23,6 @@ import static org.assertj.core.api.Java6Assertions.assertThat;
 class ModelConversionUtilsTest {
 
     @Test
-    void testIsHexamonEntity() {
-        assertThat(ModelConversionUtils.isHexamonEntityType(new TypeMock("fr.irun.hexamon.api.entity.Entity")))
-                .isTrue();
-        assertThat(ModelConversionUtils.isHexamonEntityType(new TypeMock("fr.irun.openapi.swagger.mock.GenericMock")))
-                .isFalse();
-        assertThat(ModelConversionUtils.isHexamonEntityType(new TypeMock("fr.irun.openapi.swagger.mock.SimpleMock")))
-                .isFalse();
-        final String genericWithEntityType = "fri.irun.openapi.swagger.GenericType<fr.irun.hexamon.api.entity.Entity>";
-        assertThat(ModelConversionUtils.isHexamonEntityType(new TypeMock(genericWithEntityType)))
-                .isFalse();
-        assertThat(ModelConversionUtils.isHexamonEntityType(null)).isFalse();
-    }
-
-
-    @Test
     void testIsDateTime() {
         assertThat(ModelConversionUtils.isDateType(Instant.class)).isTrue();
         assertThat(ModelConversionUtils.isDateType(LocalDateTime.class)).isTrue();
@@ -46,14 +31,6 @@ class ModelConversionUtilsTest {
         assertThat(ModelConversionUtils.isDateType(java.sql.Date.class)).isFalse();
         assertThat(ModelConversionUtils.isDateType(String.class)).isFalse();
         assertThat(ModelConversionUtils.isDateType(null)).isFalse();
-    }
-
-    @Test
-    void testDoesTypeMatchAnyClass() {
-        assertThat(ModelConversionUtils.doesTypeMatchAnyClass(Flux.class, Flux.class)).isTrue();
-        assertThat(ModelConversionUtils.doesTypeMatchAnyClass(String.class, Flux.class)).isFalse();
-        assertThat(ModelConversionUtils.doesTypeMatchAnyClass(String.class, Integer.class, String.class)).isTrue();
-        assertThat(ModelConversionUtils.doesTypeMatchAnyClass(null, Integer.class)).isFalse();
     }
 
     @Test
@@ -142,5 +119,18 @@ class ModelConversionUtilsTest {
                 .containsExactly(stringType);
     }
 
+    @Test
+    void extractLastSplitResult() {
+        assertThat(ModelConversionUtils.extractLastSplitResult("#/definitions/SomeValue", "/"))
+                .isEqualTo("SomeValue");
+        assertThat(ModelConversionUtils.extractLastSplitResult("#/definitions/////SomeValue", "/"))
+                .isEqualTo("SomeValue");
+        assertThat(ModelConversionUtils.extractLastSplitResult("SomeValue", "/"))
+                .isEqualTo("SomeValue");
+        assertThat(ModelConversionUtils.extractLastSplitResult("", "/"))
+                .isEqualTo("");
+        assertThat(ModelConversionUtils.extractLastSplitResult(null, "/"))
+                .isEqualTo("");
+    }
 
 }

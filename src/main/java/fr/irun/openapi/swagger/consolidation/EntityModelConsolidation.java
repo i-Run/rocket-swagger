@@ -24,21 +24,16 @@ import java.util.stream.Stream;
  */
 public class EntityModelConsolidation implements ModelConsolidation {
 
-
+    private static final String REFERENCE_SEPARATOR = "/";
     private static final String ENTITY_FIELD_NAME = "entity";
-
     private static final String ENTITY_SUFFIX = "Entity";
 
     private final TypeFactory typeFactory;
-
     private final ModelConverter baseConverter;
 
     private Type entityType;
-
     private ModelConverterContext context;
-
     private Annotation[] annotations;
-
     private Iterator<ModelConverter> converterIterator;
 
     public EntityModelConsolidation() {
@@ -81,9 +76,12 @@ public class EntityModelConsolidation implements ModelConsolidation {
             Class<?> entityClass = typeFactory.constructType(entityType).getRawClass();
             Class<?> innerClass = typeFactory.constructType(innerElementType).getRawClass();
 
+            final String baseModelReference = model.getReference();
+            final String baseModelName = ModelConversionUtils.extractLastSplitResult(baseModelReference, REFERENCE_SEPARATOR);
+
             ModelImpl outputModel = ModelConversionUtils.copyModel(
-                    innerClass.getSimpleName() + ENTITY_SUFFIX,
-                    model.getReference() + ENTITY_SUFFIX,
+                    baseModelName + ENTITY_SUFFIX,
+                    baseModelReference + ENTITY_SUFFIX,
                     model);
             putEntityClassPropertiesInModel(entityClass, outputModel, context, converterIterator);
             putPojoClassPropertiesInModel(innerClass, outputModel, context, converterIterator);

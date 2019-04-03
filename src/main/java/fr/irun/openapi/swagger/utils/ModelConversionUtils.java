@@ -120,37 +120,6 @@ public final class ModelConversionUtils {
     }
 
     /**
-     * Verify a type is an Hexamon entity.
-     *
-     * @param propertyType Type of the property
-     * @return true if the element is an hexamon entity (specific actions to perform).
-     */
-    public static boolean isHexamonEntityType(Type propertyType) {
-        boolean isEntity = false;
-        if (propertyType != null) {
-            String propertyTypeName = propertyType.getTypeName();
-            Matcher matcher = FULL_CLASS_NAME_PATTERN.matcher(propertyTypeName);
-            if (matcher.find()) {
-                String realTypeName = matcher.group();
-                isEntity = HEXAMON_ENTITY_CLASS_NAME.equals(realTypeName);
-            }
-        }
-        return isEntity;
-    }
-
-    /**
-     * Verify the given type matches at least one of the given class.
-     *
-     * @param type    type to check.
-     * @param classes the classes to verfiy.
-     * @return true if the type matches at least one of the given classes.
-     */
-    public static boolean doesTypeMatchAnyClass(Type type, Class<?>... classes) {
-        String typeName = getFullClassName(type);
-        return Arrays.stream(classes).anyMatch(c -> c.getName().equals(typeName));
-    }
-
-    /**
      * Verify the given type matches at least one of the given class.
      *
      * @param type             type to check.
@@ -224,6 +193,24 @@ public final class ModelConversionUtils {
             nextInnerType = extractGenericFirstInnerType(nextInnerType);
         }
         return outputTypes;
+    }
+
+    /**
+     * Split the given string with given separator and extract the last result of the split.
+     *
+     * @param input     String to split (can be null).
+     * @param separator separator.
+     * @return the last value of the split, empty String if the input is null or empty.
+     */
+    public static String extractLastSplitResult(String input, String separator) {
+        String output = "";
+        if (input != null) {
+            String[] split = input.split(separator);
+            if (split.length > 0) {
+                output = split[split.length - 1];
+            }
+        }
+        return output;
     }
 
 }

@@ -5,8 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>fr.irun</groupId>
-        <artifactId>nora-parent</artifactId>
-        <version>3</version>
+        <artifactId>rocket-parent</artifactId>
+        <version>2</version>
     </parent>
 
     <scm>

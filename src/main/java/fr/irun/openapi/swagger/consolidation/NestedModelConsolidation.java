@@ -26,18 +26,15 @@ import java.util.stream.Stream;
  */
 public class NestedModelConsolidation implements ModelConsolidation {
 
+    private static final String REFERENCE_SEPARATOR = "/";
     private static final String NESTED_SUFFIX = "Nested";
 
     private final TypeFactory typeFactory;
-
     private final ModelConverter baseConverter;
 
     private Type nestedType;
-
     private ModelConverterContext context;
-
     private Annotation[] annotations;
-
     private Iterator<ModelConverter> converterIterator;
 
     public NestedModelConsolidation() {
@@ -77,38 +74,42 @@ public class NestedModelConsolidation implements ModelConsolidation {
         final Type innerType = ModelConversionUtils.extractGenericFirstInnerType(nestedType);
 
         if (model != null && innerType != null) {
-            JavaType innerJavaType = typeFactory.constructType(nestedType);
-            Class<?> innerClass = typeFactory.constructType(innerType).getRawClass();
+            JavaType innerJavaType = typeFactory.constructType(innerType);
+
+            final String baseModelReference = model.getReference();
+            final String baseModelName = ModelConversionUtils.extractLastSplitResult(baseModelReference, REFERENCE_SEPARATOR);
 
             ModelImpl outModel = ModelConversionUtils.copyModel(
-                    innerClass.getSimpleName() + NESTED_SUFFIX,
-                    model.getReference() + NESTED_SUFFIX,
+                    baseModelName + NESTED_SUFFIX,
+                    baseModelReference + NESTED_SUFFIX,
                     model);
 
-            Class<?> nestedClass = innerJavaType.getRawClass();
-            fillModelWithNestedFields(outModel, nestedClass, innerJavaType, context, converterIterator);
+            fillModelWithNestedFields(outModel, innerJavaType, context, converterIterator);
             return outModel;
         }
-
         return model;
     }
 
-    private void fillModelWithNestedFields(ModelImpl outModel, Class<?> nestedClass, JavaType innerJavaType,
+
+    private void fillModelWithNestedFields(ModelImpl outModel, JavaType innerJavaType,
                                            ModelConverterContext modelConverterContext, Iterator<ModelConverter> iterator) {
+        final JavaType javaNestedType = typeFactory.constructType(nestedType);
+        final Class<?> nestedClass = javaNestedType.getRawClass();
+        final JavaType innerArrayType = typeFactory.constructParametricType(nestedClass, innerJavaType);
+        Type nestedArrayType = typeFactory.constructArrayType(innerArrayType);
         Stream<Field> modelFields = Arrays.stream(nestedClass.getDeclaredFields())
                 .filter(field -> !Modifier.isStatic(field.getModifiers()));
-        Type arrayType = typeFactory.constructArrayType(innerJavaType);
 
         final Property innerProperty = baseConverter.resolveProperty(innerJavaType, modelConverterContext, annotations, iterator);
-        final Property arrayProperty = baseConverter.resolveProperty(arrayType, modelConverterContext, annotations, iterator);
+        final Property arrayProperty = baseConverter.resolveProperty(nestedArrayType, modelConverterContext, annotations, iterator);
 
         modelFields.forEach(field -> {
             final Class<?> fieldClass = field.getType();
             if (fieldClass.isArray() || Collection.class.isAssignableFrom(fieldClass)) {
-                outModel.addProperty(field.getName(), innerProperty);
+                outModel.addProperty(field.getName(), arrayProperty);
 
             } else {
-                outModel.addProperty(field.getName(), arrayProperty);
+                outModel.addProperty(field.getName(), innerProperty);
             }
         });
 

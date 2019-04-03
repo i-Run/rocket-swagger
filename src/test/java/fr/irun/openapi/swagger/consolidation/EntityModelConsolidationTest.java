@@ -105,7 +105,7 @@ class EntityModelConsolidationTest {
 
         ModelImpl modelImpl = (ModelImpl) outputModel;
         assertThat(modelImpl.getReference()).isEqualTo("#/definitions/MyModelRefEntity");
-        assertThat(modelImpl.getName()).isEqualTo(PojoMock.class.getSimpleName() + "Entity");
+        assertThat(modelImpl.getName()).isEqualTo("MyModelRefEntity");
 
         // Verify the types have been resolved.
         verify(baseConverter, times(9)).resolveProperty(typeCaptor.capture(), same(context), same(ANNOTATIONS), same(ITERATOR));

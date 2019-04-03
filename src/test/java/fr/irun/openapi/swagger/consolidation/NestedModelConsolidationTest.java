@@ -91,7 +91,8 @@ class NestedModelConsolidationTest {
 
     @Test
     void consolidateModel() {
-        final JavaType nestedType = typeFactory.constructParametricType(NestedMock.class, PojoMock.class);
+        final JavaType innerType = typeFactory.constructType(PojoMock.class);
+        final JavaType nestedType = typeFactory.constructParametricType(NestedMock.class, innerType);
         tested.setContext(nestedType, context, ANNOTATIONS, ITERATOR);
 
         when(baseConverter.resolveProperty(any(), any(), any(), any())).thenReturn(refProperty);
@@ -105,13 +106,15 @@ class NestedModelConsolidationTest {
 
         ModelImpl modelImpl = (ModelImpl) outputModel;
         assertThat(modelImpl.getReference()).isEqualTo("#/definitions/MyModelRefNested");
-        assertThat(modelImpl.getName()).isEqualTo(PojoMock.class.getSimpleName() + "Nested");
+        assertThat(modelImpl.getName()).isEqualTo("MyModelRefNested");
 
         // Verify the types have been resolved.
         verify(baseConverter, times(2)).resolveProperty(typeCaptor.capture(), same(context), same(ANNOTATIONS), same(ITERATOR));
-        final Type nestedArrayType = typeFactory.constructArrayType(nestedType);
+        final Type nestedArrayType = typeFactory.constructArrayType(
+                typeFactory.constructParametricType(NestedMock.class, innerType)
+        );
         assertThat(typeCaptor.getAllValues()).containsExactly(
-                nestedType, nestedArrayType
+                innerType, nestedArrayType
         );
 
         // Verify the properties have been set
