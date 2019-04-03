@@ -5,9 +5,12 @@ import java.lang.reflect.Type;
 
 public class ParameterizedTypeMock implements ParameterizedType {
 
+    private String typeName;
+
     private Type[] innerTypes;
 
-    public ParameterizedTypeMock(Type... innerTypes) {
+    public ParameterizedTypeMock(String typeName, Type... innerTypes) {
+        this.typeName = typeName;
         this.innerTypes = innerTypes;
     }
 
@@ -24,5 +27,10 @@ public class ParameterizedTypeMock implements ParameterizedType {
     @Override
     public Type getOwnerType() {
         return null;
+    }
+
+    @Override
+    public String toString() {
+        return typeName;
     }
 }

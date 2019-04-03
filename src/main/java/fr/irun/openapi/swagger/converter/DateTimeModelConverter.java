@@ -1,6 +1,7 @@
-package fr.irun.openapi.swagger;
+package fr.irun.openapi.swagger.converter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.irun.openapi.swagger.utils.ModelConversionUtils;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
 import io.swagger.jackson.ModelResolver;
@@ -16,7 +17,7 @@ import java.util.Iterator;
 /**
  * Model converter : include the default conversion and the management of the DateTime.
  */
-final class DateTimeModelConverter implements ModelConverter {
+public final class DateTimeModelConverter implements ModelConverter {
 
     /**
      * Default instance used to convert a swagger property to a swagger model.
@@ -28,7 +29,7 @@ final class DateTimeModelConverter implements ModelConverter {
      */
     private final ModelConverter baseConverter;
 
-    DateTimeModelConverter() {
+    public DateTimeModelConverter() {
         this(new PropertyModelConverter(), new ModelResolver(new ObjectMapper()));
     }
 

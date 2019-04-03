@@ -1,5 +1,6 @@
-package fr.irun.openapi.swagger;
+package fr.irun.openapi.swagger.converter;
 
+import fr.irun.openapi.swagger.converter.DateTimeModelConverter;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
 import io.swagger.models.Model;
