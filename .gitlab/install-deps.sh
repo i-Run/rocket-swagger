@@ -119,6 +119,7 @@ function installDependency() {
         debug "repository: ${repository}, projetName: ${projetName}, version: ${version}"
         debug "$(git clone "$repository" "$gitDir" 2>&1)"
         if git -C "${gitDir}" checkout "${CI_COMMIT_REF_NAME}" > /dev/null 2>&1; then
+            debug "$(git pull origin "${CI_COMMIT_REF_NAME}" 2>&1)"
             installDependencies "$gitDir"
             mvn "${MVN_ARGS[@]}" clean install -f "$gitDir" -DskipTests
             installed+=( "${projetName}" )
