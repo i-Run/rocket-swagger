@@ -141,9 +141,14 @@ function installDependencies() {
         local module; module="$(cut -d':' -f2 <<< "$m" )"
         local version; version="$(cut -d':' -f4 <<< "$m" )"
 
+        # If module is the same as current we jump to the next
+        [[ "${CURRENT_ARTIFACT_ID[*]}" == *"${module}"* ]] && continue
+        debug "${module} -> ${version}"
+
+
         while read -r -d '' pomFile; do
             local tmprepo; tmprepo="$(grep -oPm1 "(?<=<connection>scm:git:)[^<]+" < "$pomFile")"
-            if [ -n "$tmprepo" ]; then
+            if [[ -n "$tmprepo" ]]; then
                 repositories+=( "${tmprepo} ${version}" )
             fi
         done < <(find . -name "*.pom" -exec grep -lHZ "<module>${module}</module>" {} \;) || true
@@ -183,6 +188,9 @@ if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
         esac
     done
     set -- "${POSITIONAL[@]}" # restore positional parameters
+
+    declare -ra CURRENT_ARTIFACT_ID="$(mvn exec:exec -q -Dexec.executable=echo -Dexec.args='${project.artifactId}')"
+    debug "${CURRENT_ARTIFACT_ID[*]}"
 
     installed=()
     installDependencies "."
