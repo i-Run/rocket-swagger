@@ -71,6 +71,12 @@ function getDependencies() {
 function downloadDependenciesParentPom() {
     local -r prefix="$1"
 
+    debug "mvn ${MVN_ARGS[*]} clean dependency:copy-dependencies \
+                -Dmdep.addParentPoms=true \
+                -DincludeGroupIds="${IRUN_GROUP_ID}" \
+                -DincludeTypes=pom \
+                -f ${prefix}"
+
     debug "$(mvn "${MVN_ARGS[@]}" clean dependency:copy-dependencies \
                 -Dmdep.addParentPoms=true \
                 -DincludeGroupIds="${IRUN_GROUP_ID}" \
@@ -191,6 +197,10 @@ if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
 
     declare -ra CURRENT_ARTIFACT_ID="$(mvn exec:exec -q -Dexec.executable=echo -Dexec.args='${project.artifactId}')"
     debug "${CURRENT_ARTIFACT_ID[*]}"
+
+    # Do nothing for develop branch
+    # Avoid getting old projet pom from Nexus before building it
+    [[ "${CI_COMMIT_REF_SLUG}" == "develop" ]] && exit 0
 
     installed=()
     installDependencies "."
