@@ -15,6 +15,7 @@ import io.swagger.models.utils.PropertyModelConverter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.Iterator;
+import java.util.Optional;
 
 /**
  * Model converter : include the default conversion and the management of the dates and not resolvable types.
@@ -44,31 +45,25 @@ public final class BaseModelConverter implements ModelConverter {
     @Override
     public Property resolveProperty(Type type, ModelConverterContext modelConverterContext,
                                     Annotation[] annotations, Iterator<ModelConverter> iterator) {
-        Property property = null;
-        if (type != null) {
-            if (ModelConversionUtils.isDateType(type)) {
-                property = new DateTimeProperty();
-            } else if (ModelConversionUtils.isUnresolvableType(type)) {
-                property = new MapProperty(new StringProperty());
-
-            } else {
-                property = baseConverter.resolveProperty(type, modelConverterContext, annotations, iterator);
-            }
-        }
-        return property;
+        return Optional.ofNullable(type)
+                .map(t -> {
+                    if (ModelConversionUtils.isDateType(t)) {
+                        return new DateTimeProperty();
+                    }
+                    if (ModelConversionUtils.isUnresolvableType(t)) {
+                        return new MapProperty(new StringProperty());
+                    }
+                    return baseConverter.resolveProperty(t, modelConverterContext, annotations, iterator);
+                }).orElse(null);
     }
 
     @Override
     public Model resolve(Type type, ModelConverterContext modelConverterContext, Iterator<ModelConverter> iterator) {
-        Property property = resolveProperty(type, modelConverterContext, null, iterator);
-        Model model;
+        final Property property = resolveProperty(type, modelConverterContext, null, iterator);
 
-        if (property == null) {
-            model = baseConverter.resolve(type, modelConverterContext, iterator);
-        } else {
-            model = propertyModelConverter.propertyToModel(property);
-        }
-        return model;
+        return Optional.ofNullable(property)
+                .map(propertyModelConverter::propertyToModel)
+                .orElseGet(() -> baseConverter.resolve(type, modelConverterContext, iterator));
     }
 
 

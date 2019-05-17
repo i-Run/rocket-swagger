@@ -10,6 +10,7 @@ import io.swagger.models.properties.Property;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.Iterator;
+import java.util.Optional;
 
 /**
  * Implementation used to consolidate a model used into a reactor Flux.
@@ -29,10 +30,9 @@ public class FluxModelConsolidation implements ModelConsolidation {
 
     @Override
     public Property consolidateProperty(Property property) {
-        if (property == null) {
-            return null;
-        }
-        return new ArrayProperty(property);
+        return Optional.ofNullable(property)
+                .map(ArrayProperty::new)
+                .orElse(null);
     }
 
     @Override

@@ -17,6 +17,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -61,10 +62,11 @@ public class EntityModelConsolidation implements ModelConsolidation {
 
     @Override
     public Property consolidateProperty(Property property) {
-        if (property instanceof RefProperty) {
-            RefProperty refProperty = (RefProperty) property;
-            refProperty.set$ref(refProperty.get$ref() + ENTITY_SUFFIX);
-        }
+        Optional.ofNullable(property)
+                .filter(RefProperty.class::isInstance)
+                .map(RefProperty.class::cast)
+                .ifPresent(refProperty -> refProperty.set$ref(refProperty.get$ref() + ENTITY_SUFFIX));
+
         return property;
     }
 
@@ -75,13 +77,13 @@ public class EntityModelConsolidation implements ModelConsolidation {
         if (model != null && innerElementType != null) {
             final String baseModelReference = model.getReference();
             final String baseModelName = ModelConversionUtils.extractLastSplitResult(baseModelReference, REFERENCE_SEPARATOR);
-            ModelImpl outputModel = ModelConversionUtils.copyModel(
+            final ModelImpl outputModel = ModelConversionUtils.copyModel(
                     baseModelName + ENTITY_SUFFIX,
                     baseModelReference + ENTITY_SUFFIX,
                     model);
 
-            Class<?> entityClass = typeFactory.constructType(entityType).getRawClass();
-            Class<?> innerClass = typeFactory.constructType(innerElementType).getRawClass();
+            final Class<?> entityClass = typeFactory.constructType(entityType).getRawClass();
+            final Class<?> innerClass = typeFactory.constructType(innerElementType).getRawClass();
             putEntityClassPropertiesInModel(entityClass, outputModel, context, converterIterator);
             putPojoClassPropertiesInModel(innerClass, outputModel, context, converterIterator);
             return outputModel;
@@ -95,9 +97,9 @@ public class EntityModelConsolidation implements ModelConsolidation {
                                                  ModelConverterContext modelConverterContext,
                                                  Iterator<ModelConverter> iterator) {
 
-        Stream<Field> fieldsToUse = Arrays.stream(inputClass.getDeclaredFields())
-                .filter(field -> !Modifier.isStatic(field.getModifiers())
-                        && !ENTITY_FIELD_NAME.equals(field.getName()));
+        final Stream<Field> fieldsToUse = Arrays.stream(inputClass.getDeclaredFields())
+                .filter(field -> !Modifier.isStatic(field.getModifiers()) && !ENTITY_FIELD_NAME.equals(field.getName()));
+
         fieldsToUse.forEach(field -> {
             String propertyKey = "_" + field.getName();
             Property propertyValue = baseConverter.resolveProperty(field.getType(), modelConverterContext, annotations, iterator);
@@ -109,8 +111,9 @@ public class EntityModelConsolidation implements ModelConsolidation {
                                                ModelImpl outputModel,
                                                ModelConverterContext modelConverterContext,
                                                Iterator<ModelConverter> iterator) {
-        Stream<Field> fieldsToUse = Arrays.stream(inputClass.getDeclaredFields())
+        final Stream<Field> fieldsToUse = Arrays.stream(inputClass.getDeclaredFields())
                 .filter(field -> !Modifier.isStatic(field.getModifiers()));
+
         fieldsToUse.forEach(field -> {
             String propertyKey = field.getName();
             Property propertyValue = baseConverter.resolveProperty(field.getType(), modelConverterContext, annotations, iterator);

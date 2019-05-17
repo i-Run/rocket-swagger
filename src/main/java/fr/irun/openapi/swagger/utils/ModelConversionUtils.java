@@ -8,6 +8,7 @@ import io.swagger.models.ModelImpl;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.time.Instant;
@@ -15,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -107,16 +109,17 @@ public final class ModelConversionUtils {
      * @param type type to extract the class name.
      * @return The full name of the related class.
      */
-    private static String getFullClassName(Type type) {
-        String className = "";
-        if (type != null) {
-            String propertyTypeName = type.getTypeName();
-            Matcher matcher = FULL_CLASS_NAME_PATTERN.matcher(propertyTypeName);
-            if (matcher.find()) {
-                className = matcher.group();
-            }
-        }
-        return className;
+    private static String getFullClassName(@Nullable Type type) {
+
+        return Optional.ofNullable(type)
+                .map(t -> {
+                    final String propertyTypeName = t.getTypeName();
+                    final Matcher matcher = FULL_CLASS_NAME_PATTERN.matcher(propertyTypeName);
+                    if (matcher.find()) {
+                        return matcher.group();
+                    }
+                    return "";
+                }).orElse("");
     }
 
 
@@ -182,17 +185,18 @@ public final class ModelConversionUtils {
      * @param inputModel        Model to copy.
      * @return the copied Model.
      */
-    public static ModelImpl copyModel(String newModelName, String newModelReference, Model inputModel) {
-        ModelImpl model = new ModelImpl();
-        if (inputModel != null) {
-            model.setName(newModelName);
-            model.setDescription(inputModel.getDescription());
-            model.setReference(newModelReference);
-            model.setTitle(inputModel.getTitle());
-            model.setExternalDocs(inputModel.getExternalDocs());
-            model.setExample(inputModel.getExample());
-        }
-        return model;
+    public static ModelImpl copyModel(String newModelName, String newModelReference, @Nullable Model inputModel) {
+        return Optional.ofNullable(inputModel)
+                .map(m -> {
+                    final ModelImpl model = new ModelImpl();
+                    model.setName(newModelName);
+                    model.setDescription(m.getDescription());
+                    model.setReference(newModelReference);
+                    model.setTitle(m.getTitle());
+                    model.setExternalDocs(m.getExternalDocs());
+                    model.setExample(m.getExample());
+                    return model;
+                }).orElseGet(ModelImpl::new);
     }
 
     /**
@@ -202,7 +206,7 @@ public final class ModelConversionUtils {
      * @return List of the inner types of the given type, reversed. Include the main type at the end of the list.
      * For instance:
      * <ul>
-     * <li>Mono&lt;Entity&lt;String&rt;&rt;&rt; will return { String, Entity, Mono }.</li>
+     * <li>Mono&lt;Entity&lt;String&gt;&gt;&gt; will return { String, Entity, Mono }.</li>
      * <li>String will return { String }</li>
      * </ul>
      */
@@ -223,15 +227,15 @@ public final class ModelConversionUtils {
      * @param separator separator.
      * @return the last value of the split, empty String if the input is null or empty.
      */
-    public static String extractLastSplitResult(String input, String separator) {
-        String output = "";
-        if (input != null) {
-            String[] split = input.split(separator);
-            if (split.length > 0) {
-                output = split[split.length - 1];
-            }
-        }
-        return output;
+    public static String extractLastSplitResult(@Nullable String input, String separator) {
+        return Optional.ofNullable(input)
+                .map(s -> {
+                    String[] split = s.split(separator);
+                    if (split.length > 0) {
+                        return split[split.length - 1];
+                    }
+                    return "";
+                }).orElse("");
     }
 
 }

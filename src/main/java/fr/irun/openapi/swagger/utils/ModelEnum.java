@@ -14,12 +14,12 @@ public enum ModelEnum {
     ENTITY,
 
     /**
-     * {@see reactor.core.publisher.Flux}
+     * {@link reactor.core.publisher.Flux}
      */
     FLUX,
 
     /**
-     * {@see reactor.core.publisher.Mono}
+     * {@link reactor.core.publisher.Mono}
      */
     MONO,
 

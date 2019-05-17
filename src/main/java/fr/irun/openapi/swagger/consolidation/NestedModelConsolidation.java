@@ -19,6 +19,7 @@ import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -62,10 +63,10 @@ public class NestedModelConsolidation implements ModelConsolidation {
 
     @Override
     public Property consolidateProperty(Property property) {
-        if (property instanceof RefProperty) {
-            RefProperty refProperty = (RefProperty) property;
-            refProperty.set$ref(refProperty.get$ref() + NESTED_SUFFIX);
-        }
+        Optional.ofNullable(property)
+                .filter(RefProperty.class::isInstance)
+                .map(RefProperty.class::cast)
+                .ifPresent(refProperty -> refProperty.set$ref(refProperty.get$ref() + NESTED_SUFFIX));
         return property;
     }
 
@@ -76,12 +77,12 @@ public class NestedModelConsolidation implements ModelConsolidation {
         if (model != null && innerType != null) {
             final String baseModelReference = model.getReference();
             final String baseModelName = ModelConversionUtils.extractLastSplitResult(baseModelReference, REFERENCE_SEPARATOR);
-            ModelImpl outModel = ModelConversionUtils.copyModel(
+            final ModelImpl outModel = ModelConversionUtils.copyModel(
                     baseModelName + NESTED_SUFFIX,
                     baseModelReference + NESTED_SUFFIX,
                     model);
 
-            JavaType innerJavaType = typeFactory.constructType(innerType);
+            final JavaType innerJavaType = typeFactory.constructType(innerType);
             fillModelWithNestedFields(outModel, innerJavaType, context, converterIterator);
             return outModel;
         }
@@ -94,8 +95,8 @@ public class NestedModelConsolidation implements ModelConsolidation {
         final JavaType javaNestedType = typeFactory.constructType(nestedType);
         final Class<?> nestedClass = javaNestedType.getRawClass();
         final JavaType innerArrayType = typeFactory.constructParametricType(nestedClass, innerJavaType);
-        Type nestedArrayType = typeFactory.constructArrayType(innerArrayType);
-        Stream<Field> modelFields = Arrays.stream(nestedClass.getDeclaredFields())
+        final Type nestedArrayType = typeFactory.constructArrayType(innerArrayType);
+        final Stream<Field> modelFields = Arrays.stream(nestedClass.getDeclaredFields())
                 .filter(field -> !Modifier.isStatic(field.getModifiers()));
 
         final Property innerProperty = baseConverter.resolveProperty(innerJavaType, modelConverterContext, annotations, iterator);

@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -61,50 +62,51 @@ public class RocketModelConverter implements ModelConverter {
                                     ModelConverterContext modelConverterContext,
                                     Annotation[] annotations,
                                     Iterator<ModelConverter> iterator) {
-        List<Type> typesToResolve = ModelConversionUtils.extractInnerTypesReversed(type);
+        final List<Type> typesToResolve = ModelConversionUtils.extractInnerTypesReversed(type);
         checkTypesToResolve(type, typesToResolve);
-        List<ModelTypePair> modelTypePairList = computeModelTypesToConsolidate(typesToResolve);
+        final List<ModelTypePair> modelTypePairList = computeModelTypesToConsolidate(typesToResolve);
 
-        Property outProperty = null;
-        for (ModelTypePair pair : modelTypePairList) {
-            final ModelConsolidation modelConsolidation = getConsolidationForModel(pair.model);
-            modelConsolidation.setContext(pair.type, modelConverterContext, annotations, iterator);
-            outProperty = modelConsolidation.consolidateProperty(outProperty);
-        }
-        return outProperty;
+        return modelTypePairList.stream()
+                .reduce(null,
+                        (outProperty, modelTypePair) -> {
+                            final ModelConsolidation modelConsolidation = getConsolidationForModel(modelTypePair.model);
+                            modelConsolidation.setContext(modelTypePair.type, modelConverterContext, annotations, iterator);
+                            return modelConsolidation.consolidateProperty(outProperty);
+                        },
+                        (property1, property2) -> property2);
     }
 
     @Override
     public Model resolve(Type type, ModelConverterContext modelConverterContext, Iterator<ModelConverter> iterator) {
-        List<Type> typesToResolve = ModelConversionUtils.extractInnerTypesReversed(type);
+        final List<Type> typesToResolve = ModelConversionUtils.extractInnerTypesReversed(type);
         checkTypesToResolve(type, typesToResolve);
-        List<ModelTypePair> modelTypePairList = computeModelTypesToConsolidate(typesToResolve);
+        final List<ModelTypePair> modelTypePairList = computeModelTypesToConsolidate(typesToResolve);
 
-        Model outModel = null;
-        for (ModelTypePair pair : modelTypePairList) {
-            final ModelConsolidation modelConsolidation = getConsolidationForModel(pair.model);
-            modelConsolidation.setContext(pair.type, modelConverterContext, null, iterator);
-            outModel = modelConsolidation.consolidateModel(outModel);
-        }
-        return outModel;
+        return modelTypePairList.stream()
+                .reduce(null,
+                        (outModel, modelTypePair) -> {
+                            final ModelConsolidation modelConsolidation = getConsolidationForModel(modelTypePair.model);
+                            modelConsolidation.setContext(modelTypePair.type, modelConverterContext, null, iterator);
+                            return modelConsolidation.consolidateModel(outModel);
+                        },
+                        (model1, model2) -> model2);
     }
 
     private ModelConsolidation getConsolidationForModel(ModelEnum modelType) {
-        ModelConsolidation modelConsolidation = this.consolidationMap.get(modelType);
-        if (modelConsolidation == null) {
-            throw new RocketSwaggerException("Unable to find model consolidation for model type: " + modelType);
-        }
-        return modelConsolidation;
+
+        return Optional.ofNullable(consolidationMap.get(modelType))
+                .orElseThrow(() -> new RocketSwaggerException("Unable to find model consolidation for model type: " + modelType));
     }
 
     private void checkTypesToResolve(Type baseType, List<Type> typesToResolve) {
-        if (typesToResolve.isEmpty()) {
-            throw new RocketSwaggerException("A null input type is sent to resolving for RocketModelConverter.");
-        }
-        final Type type = typesToResolve.get(0);
-        if (!ModelEnum.STANDARD.equals(ModelConversionUtils.computeModelType(type))) {
-            throw new RocketSwaggerException("Non standard inner type for resolving of type: " + baseType
-                    + " - detected inner type: " + type);
+
+        Type type = typesToResolve.stream()
+                .findFirst()
+                .orElseThrow(() -> new RocketSwaggerException("A null input type is sent to resolving for RocketModelConverter."));
+
+        final ModelEnum modelType = ModelConversionUtils.computeModelType(type);
+        if (!ModelEnum.STANDARD.equals(modelType)) {
+            throw new RocketSwaggerException("Non standard inner type for resolving of type: " + baseType + " - detected inner type: " + type);
         }
     }
 
