@@ -3,6 +3,7 @@ package fr.irun.openapi.swagger.utils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.type.TypeBase;
 import com.fasterxml.jackson.databind.type.TypeBindings;
+import com.google.common.collect.ImmutableMap;
 import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import reactor.core.publisher.Flux;
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,6 +47,16 @@ public final class ModelConversionUtils {
      * Name of the Nested class for the CMS.
      */
     private static final String CMS_NESTED_CLASS_NAME = "fr.irun.cms.api.model.Nested";
+
+    /**
+     * Model enum ti use, mapped by class names.
+     */
+    private static final Map<String, ModelEnum> MODEL_TYPES_BY_CLASS_NAMES = ImmutableMap.of(
+            HEXAMON_ENTITY_CLASS_NAME, ModelEnum.ENTITY,
+            REACTOR_FLUX_CLASS_NAME, ModelEnum.FLUX,
+            REACTOR_MONO_CLASS_NAME, ModelEnum.MONO,
+            CMS_NESTED_CLASS_NAME, ModelEnum.NESTED
+    );
 
     /**
      * Pattern for the extraction of the full name of a class.
@@ -130,17 +142,11 @@ public final class ModelConversionUtils {
      * @return the type of model to consider.
      */
     public static ModelEnum computeModelType(Type inputType) {
-        ModelEnum modelType = ModelEnum.STANDARD;
-        if (doesTypeMatchAnyClass(inputType, HEXAMON_ENTITY_CLASS_NAME)) {
-            modelType = ModelEnum.ENTITY;
-        } else if (doesTypeMatchAnyClass(inputType, REACTOR_FLUX_CLASS_NAME)) {
-            modelType = ModelEnum.FLUX;
-        } else if (doesTypeMatchAnyClass(inputType, REACTOR_MONO_CLASS_NAME)) {
-            modelType = ModelEnum.MONO;
-        } else if (doesTypeMatchAnyClass(inputType, CMS_NESTED_CLASS_NAME)) {
-            modelType = ModelEnum.NESTED;
-        }
-        return modelType;
+        return MODEL_TYPES_BY_CLASS_NAMES.entrySet().stream()
+                .filter(entry -> doesTypeMatchAnyClass(inputType, entry.getKey()))
+                .findFirst()
+                .map(Map.Entry::getValue)
+                .orElse(ModelEnum.STANDARD);
     }
 
     /**
