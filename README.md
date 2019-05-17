@@ -35,17 +35,23 @@ mkdir -p /mnt/swagger/api
 
 - Afficher un fichier JSON généré avec swagger-ui
 
-```docker pull swaggerapi/swagger-ui```
+```
+docker pull swaggerapi/swagger-ui
+```
 
 ### Lancement du docker
 
 - Copier le fichier JSON dans l'arborescence
 
-```cp (...)/swagger.json /mnt/swagger/api/```
+```
+cp (...)/swagger.json /mnt/swagger/api/
+```
 
 - Lancer le docker
 
-```docker run -p 80:8080 -e SWAGGER_JSON=/api/swagger.json -v /mnt/swagger/api:/api swaggerapi/swagger-ui```
+```
+docker run -p 80:8080 -e SWAGGER_JSON=/api/swagger.json -v /mnt/swagger/api:/api swaggerapi/swagger-ui
+```
 
 - Afficher le résultat en se connectant à l'URL `http://localhost`
 
