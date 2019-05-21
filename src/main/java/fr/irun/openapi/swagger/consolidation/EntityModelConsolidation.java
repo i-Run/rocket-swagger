@@ -9,25 +9,20 @@ import io.swagger.converter.ModelConverterContext;
 import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.Property;
-import io.swagger.models.properties.RefProperty;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 /**
  * Implementation of the consolidation for an entity Model.
  */
 public class EntityModelConsolidation implements ModelConsolidation {
 
-    private static final String REFERENCE_SEPARATOR = "/";
     private static final String ENTITY_FIELD_NAME = "entity";
-    private static final String ENTITY_SUFFIX = "Entity";
 
     private final TypeFactory typeFactory;
     private final ModelConverter baseConverter;
@@ -62,33 +57,24 @@ public class EntityModelConsolidation implements ModelConsolidation {
 
     @Override
     public Property consolidateProperty(Property property) {
-        Optional.ofNullable(property)
-                .filter(RefProperty.class::isInstance)
-                .map(RefProperty.class::cast)
-                .ifPresent(refProperty -> refProperty.set$ref(refProperty.get$ref() + ENTITY_SUFFIX));
-
-        return property;
+        return baseConverter.resolveProperty(entityType, context, annotations, converterIterator);
     }
 
     @Override
     public Model consolidateModel(Model model) {
         Type innerElementType = ModelConversionUtils.extractGenericFirstInnerType(entityType);
+        final String modelName = ModelConversionUtils.getSimpleClassName(innerElementType);
 
-        if (model != null && innerElementType != null) {
-            final String baseModelReference = model.getReference();
-            final String baseModelName = ModelConversionUtils.extractLastSplitResult(baseModelReference, REFERENCE_SEPARATOR);
-            final ModelImpl outputModel = ModelConversionUtils.copyModel(
-                    baseModelName + ENTITY_SUFFIX,
-                    baseModelReference + ENTITY_SUFFIX,
-                    model);
-
-            final Class<?> entityClass = typeFactory.constructType(entityType).getRawClass();
-            final Class<?> innerClass = typeFactory.constructType(innerElementType).getRawClass();
-            putEntityClassPropertiesInModel(entityClass, outputModel, context, converterIterator);
-            putPojoClassPropertiesInModel(innerClass, outputModel, context, converterIterator);
-            return outputModel;
-        }
-        return model;
+        return Optional.ofNullable(model)
+                .map(m -> ModelConversionUtils.copyModel(modelName, m))
+                .<Model>map(m -> {
+                    final Class<?> entityClass = typeFactory.constructType(entityType).getRawClass();
+                    final Class<?> innerClass = typeFactory.constructType(innerElementType).getRawClass();
+                    putEntityClassPropertiesInModel(entityClass, m, context, converterIterator);
+                    putPojoClassPropertiesInModel(innerClass, m, context, converterIterator);
+                    return m;
+                })
+                .orElse(model);
     }
 
 
@@ -97,28 +83,26 @@ public class EntityModelConsolidation implements ModelConsolidation {
                                                  ModelConverterContext modelConverterContext,
                                                  Iterator<ModelConverter> iterator) {
 
-        final Stream<Field> fieldsToUse = Arrays.stream(inputClass.getDeclaredFields())
-                .filter(field -> !Modifier.isStatic(field.getModifiers()) && !ENTITY_FIELD_NAME.equals(field.getName()));
-
-        fieldsToUse.forEach(field -> {
-            String propertyKey = "_" + field.getName();
-            Property propertyValue = baseConverter.resolveProperty(field.getType(), modelConverterContext, annotations, iterator);
-            outputModel.addProperty(propertyKey, propertyValue);
-        });
+        Arrays.stream(inputClass.getDeclaredFields())
+                .filter(field -> !Modifier.isStatic(field.getModifiers()) && !ENTITY_FIELD_NAME.equals(field.getName()))
+                .forEach(field -> {
+                    String propertyKey = "_" + field.getName();
+                    Property propertyValue = baseConverter.resolveProperty(field.getType(), modelConverterContext, annotations, iterator);
+                    outputModel.addProperty(propertyKey, propertyValue);
+                });
     }
 
     private void putPojoClassPropertiesInModel(Class<?> inputClass,
                                                ModelImpl outputModel,
                                                ModelConverterContext modelConverterContext,
                                                Iterator<ModelConverter> iterator) {
-        final Stream<Field> fieldsToUse = Arrays.stream(inputClass.getDeclaredFields())
-                .filter(field -> !Modifier.isStatic(field.getModifiers()));
 
-        fieldsToUse.forEach(field -> {
-            String propertyKey = field.getName();
-            Property propertyValue = baseConverter.resolveProperty(field.getType(), modelConverterContext, annotations, iterator);
-            outputModel.addProperty(propertyKey, propertyValue);
-        });
-
+        Arrays.stream(inputClass.getDeclaredFields())
+                .filter(field -> !Modifier.isStatic(field.getModifiers()))
+                .forEach(field -> {
+                    String propertyKey = field.getName();
+                    Property propertyValue = baseConverter.resolveProperty(field.getType(), modelConverterContext, annotations, iterator);
+                    outputModel.addProperty(propertyKey, propertyValue);
+                });
     }
 }

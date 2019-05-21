@@ -3,11 +3,10 @@ package fr.irun.openapi.swagger.utils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.type.TypeBase;
 import com.fasterxml.jackson.databind.type.TypeBindings;
-import com.google.common.collect.ImmutableMap;
 import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import io.swagger.models.properties.Property;
+import io.swagger.models.properties.RefProperty;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.ParameterizedType;
@@ -16,8 +15,8 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,36 +26,10 @@ import java.util.regex.Pattern;
  */
 public final class ModelConversionUtils {
 
-
     /**
-     * Name of the Flux type.
+     * Prefix for the model reference.
      */
-    private static final String REACTOR_FLUX_CLASS_NAME = Flux.class.getName();
-
-    /**
-     * Name of the Mono type.
-     */
-    private static final String REACTOR_MONO_CLASS_NAME = Mono.class.getName();
-
-    /**
-     * Name of the class "Entity" of Hexamon - specific actions to perform for this class.
-     */
-    private static final String HEXAMON_ENTITY_CLASS_NAME = "fr.irun.hexamon.api.entity.Entity";
-
-    /**
-     * Name of the Nested class for the CMS.
-     */
-    private static final String CMS_NESTED_CLASS_NAME = "fr.irun.cms.api.model.Nested";
-
-    /**
-     * Model enum ti use, mapped by class names.
-     */
-    private static final Map<String, ModelEnum> MODEL_TYPES_BY_CLASS_NAMES = ImmutableMap.of(
-            HEXAMON_ENTITY_CLASS_NAME, ModelEnum.ENTITY,
-            REACTOR_FLUX_CLASS_NAME, ModelEnum.FLUX,
-            REACTOR_MONO_CLASS_NAME, ModelEnum.MONO,
-            CMS_NESTED_CLASS_NAME, ModelEnum.NESTED
-    );
+    private static final String REFERENCE_PREFIX = "#/definitions/";
 
     /**
      * Pattern for the extraction of the full name of a class.
@@ -96,7 +69,7 @@ public final class ModelConversionUtils {
     public static boolean isDateType(Type propertyType) {
         // SimpleType.getTypeName() returns: "[Simple class, java.time.Instant]"
         // -> use a regex in order to extract the real class name.
-        String className = getFullClassName(propertyType);
+        String className = getClassName(propertyType);
         return Arrays.stream(DATE_CLASSES).anyMatch(dateClass -> dateClass.getTypeName().equals(className));
     }
 
@@ -109,19 +82,19 @@ public final class ModelConversionUtils {
     public static boolean isUnresolvableType(Type propertyType) {
         // SimpleType.getTypeName() returns: "[Simple class, java.time.JsonNode]"
         // -> use a regex in order to extract the real class name.
-        String className = getFullClassName(propertyType);
+        String className = getClassName(propertyType);
         return Arrays.stream(NOT_RESOLVABLE_CLASSES).anyMatch(dateClass -> dateClass.getTypeName().equals(className));
     }
 
 
     /**
-     * Obtain the name of the class related to a given type.
+     * Obtain the name of the class related to a given type (with package).
      * A generic class will not include its internal types.
      *
      * @param type type to extract the class name.
      * @return The full name of the related class.
      */
-    private static String getFullClassName(@Nullable Type type) {
+    public static String getClassName(@Nullable Type type) {
 
         return Optional.ofNullable(type)
                 .map(t -> {
@@ -134,6 +107,20 @@ public final class ModelConversionUtils {
                 }).orElse("");
     }
 
+    /**
+     * Obtain the simple class name for a type.
+     *
+     * @param type Input type.
+     * @return The simple class name.
+     */
+    public static String getSimpleClassName(@Nullable Type type) {
+        final String[] classWords = getClassName(type).split("\\.");
+        return Arrays.stream(classWords)
+                .skip(classWords.length - 1)
+                .findFirst()
+                .orElse("");
+    }
+
 
     /**
      * Compute the type of a model class.
@@ -142,23 +129,7 @@ public final class ModelConversionUtils {
      * @return the type of model to consider.
      */
     public static ModelEnum computeModelType(Type inputType) {
-        return MODEL_TYPES_BY_CLASS_NAMES.entrySet().stream()
-                .filter(entry -> doesTypeMatchAnyClass(inputType, entry.getKey()))
-                .findFirst()
-                .map(Map.Entry::getValue)
-                .orElse(ModelEnum.STANDARD);
-    }
-
-    /**
-     * Verify the given type matches at least one of the given class.
-     *
-     * @param type             type to check.
-     * @param classesFullNames the  full names of the classes to verify.
-     * @return true if the type matches at least one of the given classes names.
-     */
-    private static boolean doesTypeMatchAnyClass(Type type, String... classesFullNames) {
-        String typeName = getFullClassName(type);
-        return Arrays.asList(classesFullNames).contains(typeName);
+        return ModelEnum.fromClassName(getClassName(inputType));
     }
 
     /**
@@ -186,23 +157,45 @@ public final class ModelConversionUtils {
     /**
      * Copy a model to another ModelImpl instance.
      *
-     * @param newModelName      Name of the new model.
-     * @param newModelReference Reference of the new model.
-     * @param inputModel        Model to copy.
+     * @param newModelName Name of the new model.
+     * @param inputModel   Model to copy.
      * @return the copied Model.
      */
-    public static ModelImpl copyModel(String newModelName, String newModelReference, @Nullable Model inputModel) {
+    public static ModelImpl copyModel(String newModelName, @Nullable Model inputModel) {
         return Optional.ofNullable(inputModel)
                 .map(m -> {
                     final ModelImpl model = new ModelImpl();
                     model.setName(newModelName);
                     model.setDescription(m.getDescription());
-                    model.setReference(newModelReference);
+                    model.setReference(REFERENCE_PREFIX + newModelName);
                     model.setTitle(m.getTitle());
                     model.setExternalDocs(m.getExternalDocs());
                     model.setExample(m.getExample());
                     return model;
                 }).orElseGet(ModelImpl::new);
+    }
+
+
+    /**
+     * Etxract the inner type of
+     *
+     * @param inputType type to extract the generic types.
+     * @return List of the inner types of the given type. Include the main type at the beginning of the list.
+     * * For instance:
+     * * <ul>
+     * * <li>Mono&lt;Entity&lt;String&gt;&gt;&gt; will return { Mono, Entity, String }.</li>
+     * * <li>String will return { String }</li>
+     * * </ul>
+     */
+    static List<Type> extractInnerTypes(Type inputType) {
+        List<Type> outputTypes = new ArrayList<>();
+
+        Type nextInnerType = inputType;
+        while (nextInnerType != null) {
+            outputTypes.add(nextInnerType);
+            nextInnerType = extractGenericFirstInnerType(nextInnerType);
+        }
+        return outputTypes;
     }
 
     /**
@@ -217,13 +210,9 @@ public final class ModelConversionUtils {
      * </ul>
      */
     public static List<Type> extractInnerTypesReversed(Type inputType) {
-        List<Type> outputTypes = new ArrayList<>();
-        Type nextInnerType = inputType;
-        while (nextInnerType != null) {
-            outputTypes.add(0, nextInnerType);
-            nextInnerType = extractGenericFirstInnerType(nextInnerType);
-        }
-        return outputTypes;
+        final List<Type> list = extractInnerTypes(inputType);
+        Collections.reverse(list);
+        return list;
     }
 
     /**
@@ -244,4 +233,73 @@ public final class ModelConversionUtils {
                 }).orElse("");
     }
 
+    /**
+     * Obtain the complete reference of the given property.
+     *
+     * @param property input property.
+     * @return The complete reference of the given property.
+     */
+    public static String getReference(@Nullable Property property) {
+        return Optional.ofNullable(property)
+                .filter(RefProperty.class::isInstance)
+                .map(RefProperty.class::cast)
+                .map(RefProperty::get$ref)
+                .orElse("");
+    }
+
+    /**
+     * Obtain the complete reference of the given model.
+     *
+     * @param model input model.
+     * @return The complete reference of the given model.
+     */
+    public static String getReference(@Nullable Model model) {
+        return Optional.ofNullable(model)
+                .map(Model::getReference)
+                .orElse("");
+    }
+
+    /**
+     * Obtain the reference of the given property (without '#/definitions/...).
+     *
+     * @param property input property.
+     * @return The simple reference of the given property.
+     */
+    public static String getSimpleReference(@Nullable Property property) {
+        return extractLastSplitResult(getReference(property), "/");
+    }
+
+    /**
+     * Obtain the reference of the given model (without '#/definitions/...).
+     *
+     * @param model input property.
+     * @return The simple reference of the given model.
+     */
+    public static String getSimpleReference(@Nullable Model model) {
+        return extractLastSplitResult(getReference(model), "/");
+    }
+
+    /**
+     * Set the reference of the given property.
+     *
+     * @param property  the property.
+     * @param reference the reference to set into the property.
+     */
+    public static void setReference(@Nullable Property property, String reference) {
+        Optional.ofNullable(property)
+                .filter(RefProperty.class::isInstance)
+                .map(RefProperty.class::cast)
+                .ifPresent(refProperty -> refProperty.set$ref(reference));
+    }
+
+    /**
+     * Set the reference of the given model.
+     *
+     * @param model     the model.
+     * @param reference the reference to set into the model.
+     */
+    public static void setReference(@Nullable Model model, String reference) {
+        Optional.ofNullable(model)
+                .ifPresent(m -> m.setReference(reference));
+    }
 }

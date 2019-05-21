@@ -31,7 +31,6 @@ class StandardModelConsolidationTest {
     private ModelConverterContext context;
     private Type type;
 
-
     private StandardModelConsolidation tested;
 
     @BeforeEach
@@ -49,7 +48,7 @@ class StandardModelConsolidationTest {
     }
 
     @Test
-    void consolidateProperyy() {
+    void consolidateProperty() {
         tested.setContext(type, context, ANNOTATIONS, ITERATOR);
 
         RefProperty expectedOutProperty = new RefProperty();

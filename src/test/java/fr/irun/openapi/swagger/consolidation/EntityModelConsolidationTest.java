@@ -10,7 +10,6 @@ import io.swagger.converter.ModelConverterContext;
 import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.RefModel;
-import io.swagger.models.properties.ArrayProperty;
 import io.swagger.models.properties.Property;
 import io.swagger.models.properties.RefProperty;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,11 +25,12 @@ import java.util.Map;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 class EntityModelConsolidationTest {
@@ -67,20 +67,19 @@ class EntityModelConsolidationTest {
 
     @Test
     void consolidateProperty() {
-        when(refProperty.get$ref()).thenReturn("My$Ref");
-        Property outProperty = tested.consolidateProperty(refProperty);
-        assertThat(outProperty).isNotNull();
-        assertThat(outProperty).isSameAs(refProperty);
-        verify(refProperty).set$ref(eq("My$RefEntity"));
-    }
+        final Type baseType = mock(Type.class);
+        tested.setContext(baseType, context, ANNOTATIONS, ITERATOR);
 
-    @Test
-    void consolidatePropertyNonRefProperty() {
-        Property inputProperty = new ArrayProperty();
+        final Property expectedProperty = mock(Property.class);
+        when(baseConverter.resolveProperty(any(), any(), any(), any())).thenReturn(expectedProperty);
 
-        Property outProperty = tested.consolidateProperty(inputProperty);
+        Property outProperty = tested.consolidateProperty(expectedProperty);
         assertThat(outProperty).isNotNull();
-        assertThat(outProperty).isSameAs(inputProperty);
+        assertThat(outProperty).isSameAs(expectedProperty);
+
+        verify(baseConverter).resolveProperty(same(baseType), same(context), same(ANNOTATIONS), same(ITERATOR));
+        verifyNoMoreInteractions(baseConverter);
+        verifyZeroInteractions(expectedProperty);
     }
 
     @Test
@@ -97,15 +96,14 @@ class EntityModelConsolidationTest {
         when(baseConverter.resolveProperty(any(), any(), any(), any())).thenReturn(refProperty);
 
         Model inputModel = new RefModel();
-        inputModel.setReference("MyModelRef");
-
         Model outputModel = tested.consolidateModel(inputModel);
+
         assertThat(outputModel).isNotNull();
         assertThat(outputModel).isInstanceOf(ModelImpl.class);
 
         ModelImpl modelImpl = (ModelImpl) outputModel;
-        assertThat(modelImpl.getReference()).isEqualTo("#/definitions/MyModelRefEntity");
-        assertThat(modelImpl.getName()).isEqualTo("MyModelRefEntity");
+        assertThat(modelImpl.getReference()).isEqualTo("#/definitions/PojoMock");
+        assertThat(modelImpl.getName()).isEqualTo("PojoMock");
 
         // Verify the types have been resolved.
         verify(baseConverter, times(9)).resolveProperty(typeCaptor.capture(), same(context), same(ANNOTATIONS), same(ITERATOR));
@@ -128,15 +126,6 @@ class EntityModelConsolidationTest {
                 "_id", "_createdBy", "_updatedBy", "_createdAt", "_updatedAt",
                 "elementId", "name", "description", "validationDate"
         );
-    }
-
-    @Test
-    void consolidateModelNotGenericType() {
-        RefModel inputModel = new RefModel();
-
-        Model outputModel = tested.consolidateModel(inputModel);
-        assertThat(outputModel).isNotNull();
-        assertThat(outputModel).isSameAs(inputModel);
     }
 
     @Test

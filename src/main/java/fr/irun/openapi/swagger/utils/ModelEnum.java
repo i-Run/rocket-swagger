@@ -1,34 +1,54 @@
 package fr.irun.openapi.swagger.utils;
 
+import java.util.Arrays;
+
 /**
- * Enumeration of the possible model types:
- * <ul>
- * <li>FLUX</li>
- * <li>MONO</li>
- * <li>ENTITY</li>
- * <li>NESTED</li>
- * </ul>
+ * Enumeration of the possible model types.
  */
 public enum ModelEnum {
 
-    ENTITY,
+    /**
+     * Hexamon Entity type.
+     */
+    ENTITY("fr.irun.hexamon.api.entity.Entity"),
 
     /**
      * {@link reactor.core.publisher.Flux}
      */
-    FLUX,
+    FLUX("reactor.core.publisher.Flux"),
 
     /**
      * {@link reactor.core.publisher.Mono}
      */
-    MONO,
+    MONO("reactor.core.publisher.Mono"),
 
-    NESTED,
+    /**
+     * Hexamon page - fr.irun.hexamon.api.entity.Page
+     */
+    PAGE("fr.irun.hexamon.api.entity.Page"),
 
     /**
      * The model can be "Simply" resolved.
      */
-    STANDARD
+    STANDARD("");
 
+    private final String relatedClassName;
+
+    ModelEnum(String relatedClassName) {
+        this.relatedClassName = relatedClassName;
+    }
+
+    /**
+     * Extract an enum from class name.
+     *
+     * @param className Name of the class to get the rleated type.
+     * @return The type related to the given class.
+     */
+    public static ModelEnum fromClassName(String className) {
+        return Arrays.stream(values())
+                .filter(m -> m.relatedClassName.equals(className))
+                .findFirst()
+                .orElse(ModelEnum.STANDARD);
+    }
 
 }

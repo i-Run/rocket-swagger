@@ -5,7 +5,7 @@ import fr.irun.openapi.swagger.consolidation.EntityModelConsolidation;
 import fr.irun.openapi.swagger.consolidation.FluxModelConsolidation;
 import fr.irun.openapi.swagger.consolidation.ModelConsolidation;
 import fr.irun.openapi.swagger.consolidation.MonoModelConsolidation;
-import fr.irun.openapi.swagger.consolidation.NestedModelConsolidation;
+import fr.irun.openapi.swagger.consolidation.PageModelConsolidation;
 import fr.irun.openapi.swagger.consolidation.StandardModelConsolidation;
 import fr.irun.openapi.swagger.exceptions.RocketSwaggerException;
 import fr.irun.openapi.swagger.utils.ModelConversionUtils;
@@ -42,8 +42,8 @@ public class RocketModelConverter implements ModelConverter {
                 new StandardModelConsolidation(),
                 new MonoModelConsolidation(),
                 new FluxModelConsolidation(),
-                new NestedModelConsolidation(),
-                new EntityModelConsolidation()
+                new EntityModelConsolidation(),
+                new PageModelConsolidation()
         ));
     }
 
@@ -63,7 +63,6 @@ public class RocketModelConverter implements ModelConverter {
                                     Annotation[] annotations,
                                     Iterator<ModelConverter> iterator) {
         final List<Type> typesToResolve = ModelConversionUtils.extractInnerTypesReversed(type);
-        checkTypesToResolve(type, typesToResolve);
         final List<ModelTypePair> modelTypePairList = computeModelTypesToConsolidate(typesToResolve);
 
         return modelTypePairList.stream()
@@ -79,7 +78,6 @@ public class RocketModelConverter implements ModelConverter {
     @Override
     public Model resolve(Type type, ModelConverterContext modelConverterContext, Iterator<ModelConverter> iterator) {
         final List<Type> typesToResolve = ModelConversionUtils.extractInnerTypesReversed(type);
-        checkTypesToResolve(type, typesToResolve);
         final List<ModelTypePair> modelTypePairList = computeModelTypesToConsolidate(typesToResolve);
 
         return modelTypePairList.stream()
@@ -96,18 +94,6 @@ public class RocketModelConverter implements ModelConverter {
 
         return Optional.ofNullable(consolidationMap.get(modelType))
                 .orElseThrow(() -> new RocketSwaggerException("Unable to find model consolidation for model type: " + modelType));
-    }
-
-    private void checkTypesToResolve(Type baseType, List<Type> typesToResolve) {
-
-        Type type = typesToResolve.stream()
-                .findFirst()
-                .orElseThrow(() -> new RocketSwaggerException("A null input type is sent to resolving for RocketModelConverter."));
-
-        final ModelEnum modelType = ModelConversionUtils.computeModelType(type);
-        if (!ModelEnum.STANDARD.equals(modelType)) {
-            throw new RocketSwaggerException("Non standard inner type for resolving of type: " + baseType + " - detected inner type: " + type);
-        }
     }
 
     private List<ModelTypePair> computeModelTypesToConsolidate(List<Type> typesToResolve) {
