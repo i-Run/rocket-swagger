@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.type.TypeBase;
 import com.fasterxml.jackson.databind.type.TypeBindings;
 import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
-import io.swagger.models.properties.Property;
-import io.swagger.models.properties.RefProperty;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.ParameterizedType;
@@ -94,7 +92,7 @@ public final class ModelConversionUtils {
      * @param type type to extract the class name.
      * @return The full name of the related class.
      */
-    public static String getClassName(@Nullable Type type) {
+    static String getClassName(@Nullable Type type) {
 
         return Optional.ofNullable(type)
                 .map(t -> {
@@ -116,7 +114,7 @@ public final class ModelConversionUtils {
     public static String getSimpleClassName(@Nullable Type type) {
         final String[] classWords = getClassName(type).split("\\.");
         return Arrays.stream(classWords)
-                .skip(classWords.length - 1)
+                .skip(classWords.length - 1L)
                 .findFirst()
                 .orElse("");
     }
@@ -155,13 +153,13 @@ public final class ModelConversionUtils {
     }
 
     /**
-     * Copy a model to another ModelImpl instance.
+     * Copy a model to another ModelImpl instance. Do not copy the properties.
      *
      * @param newModelName Name of the new model.
      * @param inputModel   Model to copy.
      * @return the copied Model.
      */
-    public static ModelImpl copyModel(String newModelName, @Nullable Model inputModel) {
+    public static ModelImpl copyModelWithoutProperties(String newModelName, @Nullable Model inputModel) {
         return Optional.ofNullable(inputModel)
                 .map(m -> {
                     final ModelImpl model = new ModelImpl();
@@ -174,7 +172,6 @@ public final class ModelConversionUtils {
                     return model;
                 }).orElseGet(ModelImpl::new);
     }
-
 
     /**
      * Etxract the inner type of
@@ -215,91 +212,4 @@ public final class ModelConversionUtils {
         return list;
     }
 
-    /**
-     * Split the given string with given separator and extract the last result of the split.
-     *
-     * @param input     String to split (can be null).
-     * @param separator separator.
-     * @return the last value of the split, empty String if the input is null or empty.
-     */
-    public static String extractLastSplitResult(@Nullable String input, String separator) {
-        return Optional.ofNullable(input)
-                .map(s -> {
-                    String[] split = s.split(separator);
-                    if (split.length > 0) {
-                        return split[split.length - 1];
-                    }
-                    return "";
-                }).orElse("");
-    }
-
-    /**
-     * Obtain the complete reference of the given property.
-     *
-     * @param property input property.
-     * @return The complete reference of the given property.
-     */
-    public static String getReference(@Nullable Property property) {
-        return Optional.ofNullable(property)
-                .filter(RefProperty.class::isInstance)
-                .map(RefProperty.class::cast)
-                .map(RefProperty::get$ref)
-                .orElse("");
-    }
-
-    /**
-     * Obtain the complete reference of the given model.
-     *
-     * @param model input model.
-     * @return The complete reference of the given model.
-     */
-    public static String getReference(@Nullable Model model) {
-        return Optional.ofNullable(model)
-                .map(Model::getReference)
-                .orElse("");
-    }
-
-    /**
-     * Obtain the reference of the given property (without '#/definitions/...).
-     *
-     * @param property input property.
-     * @return The simple reference of the given property.
-     */
-    public static String getSimpleReference(@Nullable Property property) {
-        return extractLastSplitResult(getReference(property), "/");
-    }
-
-    /**
-     * Obtain the reference of the given model (without '#/definitions/...).
-     *
-     * @param model input property.
-     * @return The simple reference of the given model.
-     */
-    public static String getSimpleReference(@Nullable Model model) {
-        return extractLastSplitResult(getReference(model), "/");
-    }
-
-    /**
-     * Set the reference of the given property.
-     *
-     * @param property  the property.
-     * @param reference the reference to set into the property.
-     */
-    public static void setReference(@Nullable Property property, String reference) {
-        Optional.ofNullable(property)
-                .filter(RefProperty.class::isInstance)
-                .map(RefProperty.class::cast)
-                .ifPresent(refProperty -> refProperty.set$ref(reference));
-    }
-
-    /**
-     * Set the reference of the given model.
-     *
-     * @param model     the model.
-     * @param reference the reference to set into the model.
-     */
-    public static void setReference(@Nullable Model model, String reference) {
-        Optional.ofNullable(model)
-                .ifPresent(m -> m.setReference(reference));
-    }
 }

@@ -23,11 +23,6 @@ public enum ModelEnum {
     MONO("reactor.core.publisher.Mono"),
 
     /**
-     * Hexamon page - fr.irun.hexamon.api.entity.Page
-     */
-    PAGE("fr.irun.hexamon.api.entity.Page"),
-
-    /**
      * The model can be "Simply" resolved.
      */
     STANDARD("");
@@ -41,7 +36,7 @@ public enum ModelEnum {
     /**
      * Extract an enum from class name.
      *
-     * @param className Name of the class to get the rleated type.
+     * @param className Name of the class to get the related type.
      * @return The type related to the given class.
      */
     public static ModelEnum fromClassName(String className) {

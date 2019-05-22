@@ -5,7 +5,6 @@ import fr.irun.openapi.swagger.consolidation.EntityModelConsolidation;
 import fr.irun.openapi.swagger.consolidation.FluxModelConsolidation;
 import fr.irun.openapi.swagger.consolidation.ModelConsolidation;
 import fr.irun.openapi.swagger.consolidation.MonoModelConsolidation;
-import fr.irun.openapi.swagger.consolidation.PageModelConsolidation;
 import fr.irun.openapi.swagger.consolidation.StandardModelConsolidation;
 import fr.irun.openapi.swagger.exceptions.RocketSwaggerException;
 import fr.irun.openapi.swagger.utils.ModelConversionUtils;
@@ -42,8 +41,7 @@ public class RocketModelConverter implements ModelConverter {
                 new StandardModelConsolidation(),
                 new MonoModelConsolidation(),
                 new FluxModelConsolidation(),
-                new EntityModelConsolidation(),
-                new PageModelConsolidation()
+                new EntityModelConsolidation()
         ));
     }
 

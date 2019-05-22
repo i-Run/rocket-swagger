@@ -3,6 +3,7 @@ package fr.irun.openapi.swagger.utils;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.google.common.collect.ImmutableMap;
 import fr.irun.openapi.swagger.mock.EntityMock;
 import fr.irun.openapi.swagger.mock.ParameterizedTypeMock;
 import fr.irun.openapi.swagger.mock.TypeMock;
@@ -10,7 +11,6 @@ import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.RefModel;
 import io.swagger.models.properties.Property;
-import io.swagger.models.properties.RefProperty;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -23,15 +23,11 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
 
 class ModelConversionUtilsTest {
 
@@ -76,25 +72,32 @@ class ModelConversionUtilsTest {
 
 
     @Test
-    void copyModel() {
+    void copyModelWithoutProperties() {
+        final String propertyKey = "propKey";
+        final Property propertyValue = mock(Property.class);
+        final Map<String, Property> properties = ImmutableMap.of(propertyKey, propertyValue);
+
         Model baseModel = new RefModel();
         baseModel.setDescription("Some description");
         baseModel.setReference("Some reference");
         baseModel.setTitle("Some title");
         baseModel.setExample("Some example");
+        baseModel.setProperties(properties);
 
-        ModelImpl model = ModelConversionUtils.copyModel("Some new model name", baseModel);
+        ModelImpl model = ModelConversionUtils.copyModelWithoutProperties("Some new model name", baseModel);
         assertThat(model).isNotNull();
         assertThat(model.getDescription()).isEqualTo("Some description");
         assertThat(model.getReference()).isEqualTo("#/definitions/Some new model name");
         assertThat(model.getExample()).isEqualTo("Some example");
         assertThat(model.getTitle()).isEqualTo("Some title");
         assertThat(model.getName()).isEqualTo("Some new model name");
+        assertThat(model.getProperties()).isNullOrEmpty();
     }
 
+
     @Test
-    void copyNullModel() {
-        ModelImpl model = ModelConversionUtils.copyModel("", null);
+    void copyModelWithoutPropertiesModel() {
+        ModelImpl model = ModelConversionUtils.copyModelWithoutProperties("", null);
         assertThat(model).isNotNull();
     }
 
@@ -144,20 +147,6 @@ class ModelConversionUtilsTest {
     }
 
     @Test
-    void extractLastSplitResult() {
-        assertThat(ModelConversionUtils.extractLastSplitResult("#/definitions/SomeValue", "/"))
-                .isEqualTo("SomeValue");
-        assertThat(ModelConversionUtils.extractLastSplitResult("#/definitions/////SomeValue", "/"))
-                .isEqualTo("SomeValue");
-        assertThat(ModelConversionUtils.extractLastSplitResult("SomeValue", "/"))
-                .isEqualTo("SomeValue");
-        assertThat(ModelConversionUtils.extractLastSplitResult("", "/"))
-                .isEqualTo("");
-        assertThat(ModelConversionUtils.extractLastSplitResult(null, "/"))
-                .isEqualTo("");
-    }
-
-    @Test
     void isUnresolvableType() {
         assertThat(ModelConversionUtils.isUnresolvableType(JsonNode.class)).isTrue();
         assertThat(ModelConversionUtils.isUnresolvableType(new TypeMock("[Simple type, " + JsonNode.class + "]"))).isTrue();
@@ -166,20 +155,20 @@ class ModelConversionUtilsTest {
 
     private static Stream<Arguments> classNameParams() {
         return Stream.of(
-                Arguments.of("[simple type : fr.irun.hexamon.api.Page]", "Page"),
-                Arguments.of("[simple type : fr.irun.hexamon.api.Entity<fr.irun.cms.api.model.Content>]", "Entity"),
-                Arguments.of("[simple type : fr.irun.hexamon.api.AnyClass]", "AnyClass")
+                Arguments.of("[simple type : fr.irun.cms.api.model.Page]", "Page", "fr.irun.cms.api.model.Page"),
+                Arguments.of("[simple type : fr.irun.hexamon.api.Entity<fr.irun.cms.api.model.Content>]", "Entity", "fr.irun.hexamon.api.Entity"),
+                Arguments.of("[simple type : fr.irun.hexamon.api.AnyClass]", "AnyClass", "fr.irun.hexamon.api.AnyClass")
         );
     }
 
     @ParameterizedTest
     @MethodSource("classNameParams")
-    void getClassName(String typeName, String classSimpleName) {
+    void getClassName(String typeName, String classSimpleName, String fullClassName) {
         final Type inputType = new TypeMock(typeName);
         final String actualClassName = ModelConversionUtils.getClassName(inputType);
         assertThat(actualClassName).isNotNull();
-
-        assertThat(actualClassName).isEqualTo("fr.irun.hexamon.api." + classSimpleName);
+        assertThat(actualClassName).endsWith(classSimpleName);
+        assertThat(actualClassName).isEqualTo(fullClassName);
 
     }
 
@@ -193,106 +182,5 @@ class ModelConversionUtilsTest {
         assertThat(actualClassName).isEqualTo(classSimpleName);
     }
 
-    @Test
-    void getReferenceProperty() {
-        final String inputReference = "#/definitions/MyReference";
-        {
-            RefProperty property = mock(RefProperty.class);
-            when(property.get$ref()).thenReturn(inputReference);
-
-            assertThat(ModelConversionUtils.getReference(property)).isEqualTo(inputReference);
-        }
-        {
-            Property property = mock(Property.class);
-
-            assertThat(ModelConversionUtils.getReference(property)).isEmpty();
-        }
-        {
-            assertThat(ModelConversionUtils.getReference((Property) null)).isEmpty();
-        }
-    }
-
-    @Test
-    void getReferenceModel() {
-        final String inputReference = "#/definitions/MyReference";
-        {
-            Model model = mock(Model.class);
-            when(model.getReference()).thenReturn(inputReference);
-
-            assertThat(ModelConversionUtils.getReference(model)).isEqualTo(inputReference);
-        }
-        {
-            assertThat(ModelConversionUtils.getReference((Model) null)).isEmpty();
-        }
-    }
-
-    @Test
-    void getSimpleReferenceProperty() {
-        final String inputReference = "#/definitions/MyReference";
-        final String expectedValue = "MyReference";
-        {
-            RefProperty property = mock(RefProperty.class);
-            when(property.get$ref()).thenReturn(inputReference);
-
-            assertThat(ModelConversionUtils.getSimpleReference(property)).isEqualTo(expectedValue);
-        }
-        {
-            Property property = mock(Property.class);
-
-            assertThat(ModelConversionUtils.getSimpleReference(property)).isEmpty();
-        }
-        {
-            assertThat(ModelConversionUtils.getSimpleReference((Property) null)).isEmpty();
-        }
-    }
-
-    @Test
-    void getSimpleReferenceModel() {
-        final String inputReference = "#/definitions/MyReference";
-        final String expectedValue = "MyReference";
-        {
-            Model model = mock(Model.class);
-            when(model.getReference()).thenReturn(inputReference);
-
-            assertThat(ModelConversionUtils.getSimpleReference(model)).isEqualTo(expectedValue);
-        }
-        {
-            assertThat(ModelConversionUtils.getSimpleReference((Model) null)).isEmpty();
-        }
-    }
-
-    @Test
-    void setReferenceProperty() {
-        {
-            final String expectedReference = "#/definitions/MyRef";
-            final RefProperty property = mock(RefProperty.class);
-            ModelConversionUtils.setReference(property, expectedReference);
-            verify(property).set$ref(eq(expectedReference));
-            verifyNoMoreInteractions(property);
-        }
-        {
-            final String expectedReference = "#/definitions/MyRef";
-            final Property property = mock(Property.class);
-            ModelConversionUtils.setReference(property, expectedReference);
-            verifyZeroInteractions(property);
-        }
-        {
-            ModelConversionUtils.setReference((Property) null, "");
-        }
-    }
-
-    @Test
-    void setModelProperty() {
-        {
-            final String expectedReference = "#/definitions/MyRef";
-            final Model model = mock(Model.class);
-            ModelConversionUtils.setReference(model, expectedReference);
-            verify(model).setReference(eq(expectedReference));
-            verifyNoMoreInteractions(model);
-        }
-        {
-            ModelConversionUtils.setReference((Model) null, "");
-        }
-    }
 
 }

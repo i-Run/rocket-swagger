@@ -40,7 +40,7 @@ import static org.mockito.Mockito.when;
 class RocketModelConverterTest {
 
     private static final String HEXAMON_ENTITY_CLASS_NAME = "fr.irun.hexamon.api.entity.Entity";
-    private static final String HEXAMON_PAGE_CLASS_NAME = "fr.irun.hexamon.api.entity.Page";
+    private static final String HEXAMON_PAGE_CLASS_NAME = "fr.irun.cms.api.model.Page";
 
     private static final Iterator<ModelConverter> ITERATOR = Iterators.forArray(new ModelConverter[0]);
     private static final Annotation[] ANNOTATIONS = new Annotation[0];
@@ -50,7 +50,6 @@ class RocketModelConverterTest {
     private ModelConsolidation fluxModelConsolidation;
     private ModelConsolidation entityModelConsolidation;
     private ModelConsolidation monoModelConsolidation;
-    private ModelConsolidation pageModelConsolidation;
     private ModelConsolidation standardModelConsolidation;
 
     private ModelConverterContext context;
@@ -63,7 +62,6 @@ class RocketModelConverterTest {
         fluxModelConsolidation = mock(ModelConsolidation.class);
         entityModelConsolidation = mock(ModelConsolidation.class);
         monoModelConsolidation = mock(ModelConsolidation.class);
-        pageModelConsolidation = mock(ModelConsolidation.class);
         standardModelConsolidation = mock(ModelConsolidation.class);
         context = mock(ModelConverterContext.class);
 
@@ -72,19 +70,16 @@ class RocketModelConverterTest {
         when(entityModelConsolidation.getModelType()).thenReturn(ModelEnum.ENTITY);
         when(monoModelConsolidation.getModelType()).thenReturn(ModelEnum.MONO);
         when(standardModelConsolidation.getModelType()).thenReturn(ModelEnum.STANDARD);
-        when(pageModelConsolidation.getModelType()).thenReturn(ModelEnum.PAGE);
 
         tested = new RocketModelConverter(
                 Arrays.asList(fluxModelConsolidation, entityModelConsolidation,
-                        monoModelConsolidation, pageModelConsolidation,
-                        standardModelConsolidation));
+                        monoModelConsolidation, standardModelConsolidation));
 
         // Verify the constructor
         verify(fluxModelConsolidation).getModelType();
         verify(entityModelConsolidation).getModelType();
         verify(monoModelConsolidation).getModelType();
         verify(standardModelConsolidation).getModelType();
-        verify(pageModelConsolidation).getModelType();
     }
 
     /*
@@ -102,7 +97,7 @@ class RocketModelConverterTest {
         assertThat(property).isNotNull();
         verify(standardModelConsolidation).setContext(same(type), same(context), same(ANNOTATIONS), same(ITERATOR));
         verify(standardModelConsolidation).consolidateProperty(same(null));
-        verifyZeroInteractions(monoModelConsolidation, fluxModelConsolidation, entityModelConsolidation, pageModelConsolidation);
+        verifyZeroInteractions(monoModelConsolidation, fluxModelConsolidation, entityModelConsolidation);
 
         assertThat(property).isSameAs(expectedOutProperty);
     }
@@ -122,7 +117,7 @@ class RocketModelConverterTest {
         verify(standardModelConsolidation).setContext(same(type), same(context), same(null), same(ITERATOR));
         verify(standardModelConsolidation).consolidateModel(same(null));
 
-        verifyZeroInteractions(monoModelConsolidation, fluxModelConsolidation, entityModelConsolidation, pageModelConsolidation);
+        verifyZeroInteractions(monoModelConsolidation, fluxModelConsolidation, entityModelConsolidation);
         assertThat(outModel).isSameAs(expectedOutModel);
     }
 
@@ -141,7 +136,7 @@ class RocketModelConverterTest {
         assertThat(property).isNotNull();
         verify(standardModelConsolidation).setContext(same(genericType), same(context), same(ANNOTATIONS), same(ITERATOR));
         verify(standardModelConsolidation).consolidateProperty(same(null));
-        verifyZeroInteractions(monoModelConsolidation, fluxModelConsolidation, entityModelConsolidation, pageModelConsolidation);
+        verifyZeroInteractions(monoModelConsolidation, fluxModelConsolidation, entityModelConsolidation);
         assertThat(property).isSameAs(expectedOutProperty);
     }
 
@@ -160,59 +155,14 @@ class RocketModelConverterTest {
         assertThat(outModel).isNotNull();
         verify(standardModelConsolidation).setContext(same(genericType), same(context), same(null), same(ITERATOR));
         verify(standardModelConsolidation).consolidateModel(same(null));
-        verifyZeroInteractions(monoModelConsolidation, fluxModelConsolidation, entityModelConsolidation, pageModelConsolidation);
+        verifyZeroInteractions(monoModelConsolidation, fluxModelConsolidation, entityModelConsolidation);
         assertThat(outModel).isSameAs(expectedOutModel);
     }
 
-    /*
-     * Page<POJO>
-     */
-    @Test
-    void resolvePropertyPagePojo() {
-        final RefProperty baseProperty = new RefProperty();
-        final RefProperty pageProperty = new RefProperty();
-        when(standardModelConsolidation.consolidateProperty(any()))
-                .thenReturn(baseProperty);
-        when(pageModelConsolidation.consolidateProperty(any())).thenReturn(pageProperty);
-
-        final JavaType innerType = TYPE_FACTORY.constructType(PojoMock.class);
-        final Type pageType = new ParameterizedTypeMock(HEXAMON_PAGE_CLASS_NAME, innerType);
-        Property actualProperty = tested.resolveProperty(pageType, context, ANNOTATIONS, ITERATOR);
-
-        assertThat(actualProperty).isNotNull();
-        verify(standardModelConsolidation).setContext(same(innerType), same(context), same(ANNOTATIONS), same(ITERATOR));
-        verify(standardModelConsolidation).consolidateProperty(null);
-        verify(pageModelConsolidation).setContext(same(pageType), same(context), same(ANNOTATIONS), same(ITERATOR));
-        verify(pageModelConsolidation).consolidateProperty(same(baseProperty));
-        verifyZeroInteractions(monoModelConsolidation, fluxModelConsolidation, entityModelConsolidation);
-        assertThat(actualProperty).isSameAs(pageProperty);
-    }
 
     /*
-     * Page<POJO>
+     * Mono<POJO>
      */
-    @Test
-    void resolvePagePojo() {
-        final RefModel baseModel = new RefModel();
-        final RefModel pageModel = new RefModel();
-        when(standardModelConsolidation.consolidateModel(any()))
-                .thenReturn(baseModel);
-        when(pageModelConsolidation.consolidateModel(any())).thenReturn(pageModel);
-
-        final JavaType innerType = TYPE_FACTORY.constructType(PojoMock.class);
-        final Type pageType = new ParameterizedTypeMock(HEXAMON_PAGE_CLASS_NAME, innerType);
-        Model actualModel = tested.resolve(pageType, context, ITERATOR);
-
-        assertThat(actualModel).isNotNull();
-        verify(standardModelConsolidation).setContext(same(innerType), same(context), same(null), same(ITERATOR));
-        verify(standardModelConsolidation).consolidateModel(null);
-        verify(pageModelConsolidation).setContext(same(pageType), same(context), same(null), same(ITERATOR));
-        verify(pageModelConsolidation).consolidateModel(same(baseModel));
-        verifyZeroInteractions(monoModelConsolidation, fluxModelConsolidation, entityModelConsolidation);
-        assertThat(actualModel).isSameAs(pageModel);
-    }
-
-
     @Test
     void resolvePropertyMonoPojo() {
         final RefProperty baseProperty = new RefProperty();
@@ -230,10 +180,13 @@ class RocketModelConverterTest {
         verify(standardModelConsolidation).consolidateProperty(null);
         verify(monoModelConsolidation).setContext(same(monoType), same(context), same(ANNOTATIONS), same(ITERATOR));
         verify(monoModelConsolidation).consolidateProperty(same(baseProperty));
-        verifyZeroInteractions(fluxModelConsolidation, entityModelConsolidation, pageModelConsolidation);
+        verifyZeroInteractions(fluxModelConsolidation, entityModelConsolidation);
         assertThat(property).isSameAs(monoProperty);
     }
 
+    /*
+     * Mono<POJO>
+     */
     @Test
     void resolveMonoPojo() {
         final RefModel baseModel = new RefModel();
@@ -250,10 +203,13 @@ class RocketModelConverterTest {
         verify(standardModelConsolidation).consolidateModel(null);
         verify(monoModelConsolidation).setContext(same(monoType), same(context), same(null), same(ITERATOR));
         verify(monoModelConsolidation).consolidateModel(same(baseModel));
-        verifyZeroInteractions(fluxModelConsolidation, entityModelConsolidation, pageModelConsolidation);
+        verifyZeroInteractions(fluxModelConsolidation, entityModelConsolidation);
         assertThat(outModel).isSameAs(monoModel);
     }
 
+    /*
+     * Flux<POJO>
+     */
     @Test
     void resolvePropertyFluxPojo() {
         final RefProperty baseProperty = new RefProperty();
@@ -272,10 +228,13 @@ class RocketModelConverterTest {
         verify(monoModelConsolidation, never()).consolidateProperty(any());
         verify(fluxModelConsolidation).setContext(same(fluxType), same(context), same(ANNOTATIONS), same(ITERATOR));
         verify(fluxModelConsolidation).consolidateProperty(same(baseProperty));
-        verifyZeroInteractions(entityModelConsolidation, pageModelConsolidation);
+        verifyZeroInteractions(entityModelConsolidation);
         assertThat(property).isSameAs(fluxProperty);
     }
 
+    /*
+     * Mono<POJO>
+     */
     @Test
     void resolveFluxPojo() {
         final RefModel baseModel = new RefModel();
@@ -294,10 +253,13 @@ class RocketModelConverterTest {
         verify(monoModelConsolidation, never()).consolidateModel(any());
         verify(fluxModelConsolidation).setContext(same(fluxType), same(context), same(null), same(ITERATOR));
         verify(fluxModelConsolidation).consolidateModel(same(baseModel));
-        verifyZeroInteractions(entityModelConsolidation, pageModelConsolidation);
+        verifyZeroInteractions(entityModelConsolidation);
         assertThat(outModel).isSameAs(fluxModel);
     }
 
+    /*
+     * Entity<POJO>
+     */
     @Test
     void resolvePropertyEntityPojo() {
         final RefProperty baseProperty = new RefProperty();
@@ -312,16 +274,19 @@ class RocketModelConverterTest {
         assertThat(property).isNotNull();
         verify(standardModelConsolidation).setContext(same(innerType), same(context), same(ANNOTATIONS), same(ITERATOR));
         verify(standardModelConsolidation).consolidateProperty(null);
-        verify(monoModelConsolidation, never()).setContext(any(), any(), any(), any());
-        verify(monoModelConsolidation, never()).consolidateProperty(any());
-        verify(fluxModelConsolidation, never()).setContext(any(), any(), any(), any());
-        verify(fluxModelConsolidation, never()).consolidateProperty(any());
+//        verify(monoModelConsolidation, never()).setContext(any(), any(), any(), any());
+//        verify(monoModelConsolidation, never()).consolidateProperty(any());
+//        verify(fluxModelConsolidation, never()).setContext(any(), any(), any(), any());
+//        verify(fluxModelConsolidation, never()).consolidateProperty(any());
         verify(entityModelConsolidation).setContext(same(entityType), same(context), same(ANNOTATIONS), same(ITERATOR));
         verify(entityModelConsolidation).consolidateProperty(same(baseProperty));
-        verifyZeroInteractions(pageModelConsolidation);
+        verifyZeroInteractions(monoModelConsolidation, fluxModelConsolidation);
         assertThat(property).isSameAs(entityProperty);
     }
 
+    /*
+     * Mono<POJO>
+     */
     @Test
     void resolveEntityPojo() {
         final RefModel baseModel = new RefModel();
@@ -336,7 +301,7 @@ class RocketModelConverterTest {
         assertThat(outModel).isNotNull();
         verify(standardModelConsolidation).setContext(same(innerType), same(context), same(null), same(ITERATOR));
         verify(standardModelConsolidation).consolidateModel(null);
-        verifyZeroInteractions(monoModelConsolidation, fluxModelConsolidation, pageModelConsolidation);
+        verifyZeroInteractions(monoModelConsolidation, fluxModelConsolidation);
         verify(entityModelConsolidation).setContext(same(entityType), same(context), same(null), same(ITERATOR));
         verify(entityModelConsolidation).consolidateModel(same(baseModel));
 
