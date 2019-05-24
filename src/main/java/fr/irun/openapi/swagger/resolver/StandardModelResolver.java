@@ -9,7 +9,6 @@ import io.swagger.models.properties.Property;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.Iterator;
-import java.util.Optional;
 
 /**
  * Default Model resolver.
@@ -34,19 +33,11 @@ public class StandardModelResolver implements RocketModelResolver {
 
     @Override
     public Property resolveProperty(Type type, ModelConverterContext context, Annotation[] annotations, Iterator<ModelConverter> iterator) {
-        final ModelConverter converter = Optional.ofNullable(iterator)
-                .filter(Iterator::hasNext)
-                .map(Iterator::next)
-                .orElse(modelConverter);
-        return converter.resolveProperty(type, context, annotations, iterator);
+        return modelConverter.resolveProperty(type, context, annotations, iterator);
     }
 
     @Override
     public Model resolve(Type type, ModelConverterContext modelConverterContext, Iterator<ModelConverter> iterator) {
-        final ModelConverter converter = Optional.ofNullable(iterator)
-                .filter(Iterator::hasNext)
-                .map(Iterator::next)
-                .orElse(modelConverter);
-        return converter.resolve(type, modelConverterContext, iterator);
+        return modelConverter.resolve(type, modelConverterContext, iterator);
     }
 }

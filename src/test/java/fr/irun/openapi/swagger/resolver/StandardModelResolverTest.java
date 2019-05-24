@@ -17,10 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 class StandardModelResolverTest {
@@ -49,61 +47,30 @@ class StandardModelResolverTest {
     void resolveProperty() {
         final Type baseType = mock(Type.class);
         final Property expectedProperty = mock(Property.class);
-        {
-            final Iterator<ModelConverter> iterator = Iterators.forArray();
-            when(modelConverter.resolveProperty(any(), any(), any(), any())).thenReturn(expectedProperty);
+        final Iterator<ModelConverter> iterator = Iterators.forArray();
+        when(modelConverter.resolveProperty(any(), any(), any(), any())).thenReturn(expectedProperty);
 
-            final Property actualProperty = tested.resolveProperty(baseType, context, ANNOTATIONS, iterator);
-            assertThat(actualProperty).isNotNull();
-            assertThat(actualProperty).isSameAs(expectedProperty);
+        final Property actualProperty = tested.resolveProperty(baseType, context, ANNOTATIONS, iterator);
 
-            verify(modelConverter).resolveProperty(same(baseType), same(context), same(ANNOTATIONS), same(iterator));
-            verifyNoMoreInteractions(modelConverter);
-        }
-        reset(modelConverter);
-        {
-            final ModelConverter iteratorConverter = mock(ModelConverter.class);
-            final Iterator<ModelConverter> iterator = Iterators.forArray(iteratorConverter);
-            when(iteratorConverter.resolveProperty(any(), any(), any(), any())).thenReturn(expectedProperty);
+        assertThat(actualProperty).isNotNull();
+        assertThat(actualProperty).isSameAs(expectedProperty);
+        verify(modelConverter).resolveProperty(same(baseType), same(context), same(ANNOTATIONS), same(iterator));
+        verifyNoMoreInteractions(modelConverter);
 
-            final Property actualProperty = tested.resolveProperty(baseType, context, ANNOTATIONS, iterator);
-            assertThat(actualProperty).isNotNull();
-            assertThat(actualProperty).isSameAs(expectedProperty);
-
-            verify(iteratorConverter).resolveProperty(same(baseType), same(context), same(ANNOTATIONS), same(iterator));
-            verifyNoMoreInteractions(iteratorConverter);
-            verifyZeroInteractions(modelConverter);
-        }
     }
 
     @Test
     void resolve() {
         final Type baseType = mock(Type.class);
         final Model expectedModel = mock(Model.class);
-        {
-            final Iterator<ModelConverter> iterator = Iterators.forArray();
-            when(modelConverter.resolve(any(), any(), any())).thenReturn(expectedModel);
+        final Iterator<ModelConverter> iterator = Iterators.forArray();
+        when(modelConverter.resolve(any(), any(), any())).thenReturn(expectedModel);
 
-            final Model actualModel = tested.resolve(baseType, context, iterator);
-            assertThat(actualModel).isNotNull();
-            assertThat(actualModel).isSameAs(expectedModel);
+        final Model actualModel = tested.resolve(baseType, context, iterator);
 
-            verify(modelConverter).resolve(same(baseType), same(context), same(iterator));
-            verifyNoMoreInteractions(modelConverter);
-        }
-        reset(modelConverter);
-        {
-            final ModelConverter iteratorConverter = mock(ModelConverter.class);
-            final Iterator<ModelConverter> iterator = Iterators.forArray(iteratorConverter);
-            when(iteratorConverter.resolve(any(), any(), any())).thenReturn(expectedModel);
-
-            final Model actualModel = tested.resolve(baseType, context, iterator);
-            assertThat(actualModel).isNotNull();
-            assertThat(actualModel).isSameAs(expectedModel);
-
-            verify(iteratorConverter).resolve(same(baseType), same(context), same(iterator));
-            verifyNoMoreInteractions(iteratorConverter);
-            verifyZeroInteractions(modelConverter);
-        }
+        assertThat(actualModel).isNotNull();
+        assertThat(actualModel).isSameAs(expectedModel);
+        verify(modelConverter).resolve(same(baseType), same(context), same(iterator));
+        verifyNoMoreInteractions(modelConverter);
     }
 }
