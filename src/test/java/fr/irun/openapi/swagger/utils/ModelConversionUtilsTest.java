@@ -145,5 +145,10 @@ class ModelConversionUtilsTest {
             final Type actualType = ModelConversionUtils.extractGenericFirstInnerType(inputType);
             assertThat(actualType).isNull();
         }
+        // Null type
+        {
+            final Type actualType = ModelConversionUtils.extractGenericFirstInnerType(null);
+            assertThat(actualType).isNull();
+        }
     }
 }
