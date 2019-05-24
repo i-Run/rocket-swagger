@@ -8,9 +8,7 @@ import io.swagger.converter.ModelConverterContext;
 import io.swagger.jackson.ModelResolver;
 import io.swagger.models.Model;
 import io.swagger.models.properties.DateTimeProperty;
-import io.swagger.models.properties.MapProperty;
 import io.swagger.models.properties.Property;
-import io.swagger.models.properties.StringProperty;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
@@ -40,16 +38,10 @@ public final class BaseModelConverter implements ModelConverter {
     @Override
     public Property resolveProperty(Type type, ModelConverterContext modelConverterContext,
                                     Annotation[] annotations, Iterator<ModelConverter> iterator) {
-        return Optional.ofNullable(type)
-                .map(t -> {
-                    if (ModelConversionUtils.isDateType(t)) {
-                        return new DateTimeProperty();
-                    }
-                    if (ModelConversionUtils.isUnresolvableType(t)) {
-                        return new MapProperty(new StringProperty());
-                    }
-                    return baseConverter.resolveProperty(t, modelConverterContext, annotations, iterator);
-                }).orElse(null);
+        return Optional.of(type)
+                .filter(ModelConversionUtils::isDateType)
+                .<Property>map(t -> new DateTimeProperty())
+                .orElseGet(() -> baseConverter.resolveProperty(type, modelConverterContext, annotations, iterator));
     }
 
     @Override

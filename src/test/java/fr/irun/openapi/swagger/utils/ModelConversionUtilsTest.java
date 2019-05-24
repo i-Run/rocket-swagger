@@ -1,7 +1,6 @@
 package fr.irun.openapi.swagger.utils;
 
 import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.type.TypeBase;
 import com.fasterxml.jackson.databind.type.TypeBindings;
 import org.junit.jupiter.api.Test;
@@ -52,23 +51,6 @@ class ModelConversionUtilsTest {
     void computeModelType(Class<?> inputClass, ModelEnum expectedResult) {
         final Type inputType = mockType(inputClass);
         assertThat(ModelConversionUtils.computeModelType(inputType)).isEqualTo(expectedResult);
-    }
-
-
-    private static Stream<Arguments> isUnresolvableTypeParams() {
-        return Stream.of(
-                Arguments.of(JsonNode.class, true),
-                Arguments.of(String.class, false),
-                Arguments.of(Mono.class, false),
-                Arguments.of(Flux.class, false)
-        );
-    }
-
-    @ParameterizedTest
-    @MethodSource("isUnresolvableTypeParams")
-    void isUnresolvableType(Class<?> inputClass, Boolean expectedResult) {
-        final Type inputType = mockType(inputClass);
-        assertThat(ModelConversionUtils.isUnresolvableType(inputType)).isEqualTo(expectedResult.booleanValue());
     }
 
     private static Stream<Arguments> classNameParams() {

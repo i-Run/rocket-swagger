@@ -1,15 +1,15 @@
 package fr.irun.openapi.swagger.converter;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
 import io.swagger.models.Model;
-import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.DateTimeProperty;
-import io.swagger.models.properties.MapProperty;
 import io.swagger.models.properties.Property;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
@@ -17,10 +17,10 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -47,9 +47,19 @@ class BaseModelConverterTest {
         tested = new BaseModelConverter(baseModelConverter);
     }
 
-    @Test
-    void resolvePropertyInstant() {
-        Property property = tested.resolveProperty(Instant.class, converterContext, DEFAULT_ANNOTATIONS, iterator);
+    private static Stream<Arguments> dateTypeArguments() {
+        return Stream.of(
+                Arguments.of(Instant.class),
+                Arguments.of(LocalDateTime.class),
+                Arguments.of(java.util.Date.class),
+                Arguments.of(java.sql.Date.class)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("dateTypeArguments")
+    void resolveProperty_should_resolve_date_property(Type inputType) {
+        Property property = tested.resolveProperty(inputType, converterContext, DEFAULT_ANNOTATIONS, iterator);
 
         assertThat(property).isNotNull();
         assertThat(property).isInstanceOf(DateTimeProperty.class);
@@ -57,16 +67,7 @@ class BaseModelConverterTest {
     }
 
     @Test
-    void resolvePropertyLocalDateTime() {
-        Property property = tested.resolveProperty(LocalDateTime.class, converterContext, DEFAULT_ANNOTATIONS, iterator);
-
-        assertThat(property).isNotNull();
-        assertThat(property).isInstanceOf(DateTimeProperty.class);
-        verifyZeroInteractions(baseModelConverter);
-    }
-
-    @Test
-    void resolvePropertyNonDate() {
+    void resolveProperty_should_resolve_non_date_property() {
         final Property expectedOutProperty = mock(Property.class);
         final Type inputType = mock(Type.class);
         when(inputType.getTypeName()).thenReturn(String.class.getName());
@@ -80,28 +81,6 @@ class BaseModelConverterTest {
 
         verify(baseModelConverter).resolveProperty(same(inputType), same(converterContext), same(DEFAULT_ANNOTATIONS), same(iterator));
         verifyZeroInteractions(baseModelConverter);
-    }
-
-    @Test
-    void resolvePropertyJsonNode() {
-        Property property = tested.resolveProperty(JsonNode.class, converterContext, DEFAULT_ANNOTATIONS, iterator);
-
-        assertThat(property).isNotNull();
-        assertThat(property).isInstanceOf(MapProperty.class);
-        verifyZeroInteractions(baseModelConverter);
-    }
-
-    @Test
-    void resolveNullProperty() {
-        Model expectedOutModel = new ModelImpl();
-        when(baseModelConverter.resolve(any(), any(), any())).thenReturn(expectedOutModel);
-
-        Model model = tested.resolve(String.class, converterContext, iterator);
-
-        assertThat(model).isNotNull();
-        assertThat(model).isSameAs(expectedOutModel);
-
-        verify(baseModelConverter).resolve(eq(String.class), eq(converterContext), eq(iterator));
     }
 
     @Test

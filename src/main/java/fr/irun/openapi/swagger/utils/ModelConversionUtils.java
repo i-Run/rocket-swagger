@@ -1,6 +1,5 @@
 package fr.irun.openapi.swagger.utils;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.type.TypeBase;
 import com.fasterxml.jackson.databind.type.TypeBindings;
 
@@ -36,16 +35,7 @@ public final class ModelConversionUtils {
             Instant.class, LocalDateTime.class, java.util.Date.class, java.sql.Date.class,
     };
 
-    /**
-     * Array of the classes which cannot be resolved.
-     */
-    private static final Class<?>[] NOT_RESOLVABLE_CLASSES = {
-            JsonNode.class,
-    };
-
-
     private ModelConversionUtils() {
-
     }
 
 
@@ -61,20 +51,6 @@ public final class ModelConversionUtils {
         String className = getClassName(propertyType);
         return Arrays.stream(DATE_CLASSES).anyMatch(dateClass -> dateClass.getTypeName().equals(className));
     }
-
-    /**
-     * Verify a type of property corresponds to a type not resolvable.
-     *
-     * @param propertyType input type.
-     * @return true if the input type cannot be resolved.
-     */
-    public static boolean isUnresolvableType(Type propertyType) {
-        // SimpleType.getTypeName() returns: "[Simple class, java.time.JsonNode]"
-        // -> use a regex in order to extract the real class name.
-        String className = getClassName(propertyType);
-        return Arrays.stream(NOT_RESOLVABLE_CLASSES).anyMatch(dateClass -> dateClass.getTypeName().equals(className));
-    }
-
 
     /**
      * Obtain the name of the class related to a given type (with package).
