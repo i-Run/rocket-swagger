@@ -9,6 +9,11 @@
         <version>3-SNAPSHOT</version>
     </parent>
 
+    <properties>
+        <hexamon.version>1.3.0-SNAPSHOT</hexamon.version>
+        <confiture.version>1.0.0-SNAPSHOT</confiture.version>
+    </properties>
+
     <scm>
         <connection>scm:git:git@gitlab.i-run.fr:nora/tooling/nora-swager.git</connection>
         <developerConnection>scm:git:git@gitlab.i-run.fr:nora/tooling/nora-swager.git</developerConnection>
@@ -21,6 +26,17 @@
     <packaging>jar</packaging>
 
     <dependencies>
+        <dependency>
+            <groupId>fr.irun</groupId>
+            <artifactId>hexamon-api</artifactId>
+            <version>${hexamon.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>fr.irun</groupId>
+            <artifactId>hexamon-infra</artifactId>
+            <version>${hexamon.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
@@ -60,7 +76,6 @@
             <artifactId>junit-jupiter-params</artifactId>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
 </project>

@@ -7,14 +7,12 @@ import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.DateTimeProperty;
 import io.swagger.models.properties.MapProperty;
-import io.swagger.models.properties.ObjectProperty;
 import io.swagger.models.properties.Property;
-import io.swagger.models.properties.RefProperty;
-import io.swagger.models.utils.PropertyModelConverter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Type;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -25,15 +23,15 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 class BaseModelConverterTest {
 
     private static final Annotation[] DEFAULT_ANNOTATIONS = new Annotation[0];
 
-    private PropertyModelConverter propertyModelConverter;
     private ModelConverter baseModelConverter;
     private ModelConverterContext converterContext;
     private Iterator<ModelConverter> iterator;
@@ -43,11 +41,10 @@ class BaseModelConverterTest {
     @BeforeEach
     void setUp() {
         baseModelConverter = mock(ModelConverter.class);
-        propertyModelConverter = mock(PropertyModelConverter.class);
         converterContext = mock(ModelConverterContext.class);
         iterator = Collections.singletonList(baseModelConverter).iterator();
 
-        tested = new BaseModelConverter(propertyModelConverter, baseModelConverter);
+        tested = new BaseModelConverter(baseModelConverter);
     }
 
     @Test
@@ -56,7 +53,7 @@ class BaseModelConverterTest {
 
         assertThat(property).isNotNull();
         assertThat(property).isInstanceOf(DateTimeProperty.class);
-        verify(baseModelConverter, never()).resolveProperty(any(), any(), any(), any());
+        verifyZeroInteractions(baseModelConverter);
     }
 
     @Test
@@ -65,19 +62,24 @@ class BaseModelConverterTest {
 
         assertThat(property).isNotNull();
         assertThat(property).isInstanceOf(DateTimeProperty.class);
-        verify(baseModelConverter, never()).resolveProperty(any(), any(), any(), any());
+        verifyZeroInteractions(baseModelConverter);
     }
 
     @Test
     void resolvePropertyNonDate() {
-        Property expectedOutProperty = new RefProperty();
+        final Property expectedOutProperty = mock(Property.class);
+        final Type inputType = mock(Type.class);
+        when(inputType.getTypeName()).thenReturn(String.class.getName());
+
         when(baseModelConverter.resolveProperty(any(), any(), any(), any())).thenReturn(expectedOutProperty);
 
-        Property property = tested.resolveProperty(String.class, converterContext, DEFAULT_ANNOTATIONS, iterator);
+        Property property = tested.resolveProperty(inputType, converterContext, DEFAULT_ANNOTATIONS, iterator);
 
         assertThat(property).isNotNull();
         assertThat(property).isSameAs(expectedOutProperty);
-        verify(baseModelConverter).resolveProperty(eq(String.class), eq(converterContext), eq(DEFAULT_ANNOTATIONS), eq(iterator));
+
+        verify(baseModelConverter).resolveProperty(same(inputType), same(converterContext), same(DEFAULT_ANNOTATIONS), same(iterator));
+        verifyZeroInteractions(baseModelConverter);
     }
 
     @Test
@@ -86,7 +88,7 @@ class BaseModelConverterTest {
 
         assertThat(property).isNotNull();
         assertThat(property).isInstanceOf(MapProperty.class);
-        verify(baseModelConverter, never()).resolve(any(), any(), any());
+        verifyZeroInteractions(baseModelConverter);
     }
 
     @Test
@@ -99,25 +101,22 @@ class BaseModelConverterTest {
         assertThat(model).isNotNull();
         assertThat(model).isSameAs(expectedOutModel);
 
-        verify(propertyModelConverter, never()).propertyToModel(any());
         verify(baseModelConverter).resolve(eq(String.class), eq(converterContext), eq(iterator));
     }
 
     @Test
     void resolve() {
-        Property expectedOutProperty = new RefProperty();
-        Model expectedOutModel = new ModelImpl();
+        final Model expectedModel = mock(Model.class);
+        final Type inputType = mock(Type.class);
 
-        when(baseModelConverter.resolveProperty(any(), any(), any(), any())).thenReturn(expectedOutProperty);
-        when(propertyModelConverter.propertyToModel(any())).thenReturn(expectedOutModel);
+        when(baseModelConverter.resolve(any(), any(), any())).thenReturn(expectedModel);
 
-        Model model = tested.resolve(String.class, converterContext, iterator);
+        final Model actualModel = tested.resolve(inputType, converterContext, iterator);
+        assertThat(actualModel).isNotNull();
+        assertThat(actualModel).isSameAs(expectedModel);
 
-        assertThat(model).isNotNull();
-        assertThat(model).isSameAs(expectedOutModel);
-
-        verify(propertyModelConverter).propertyToModel(same(expectedOutProperty));
-        verify(baseModelConverter, never()).resolve(any(), any(), any());
+        verify(baseModelConverter).resolve(same(inputType), same(converterContext), same(iterator));
+        verifyNoMoreInteractions(baseModelConverter);
     }
 
 }

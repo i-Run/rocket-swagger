@@ -17,7 +17,6 @@ class ModelEnumTest {
         return Stream.of(
                 Arguments.of(Mono.class.getName(), ModelEnum.MONO),
                 Arguments.of(Flux.class.getName(), ModelEnum.FLUX),
-                Arguments.of("fr.irun.hexamon.api.entity.Entity", ModelEnum.ENTITY),
                 Arguments.of("DummyClass", ModelEnum.STANDARD),
                 Arguments.of(null, ModelEnum.STANDARD)
         );

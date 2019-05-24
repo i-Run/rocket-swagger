@@ -8,16 +8,13 @@ import java.util.Arrays;
 public enum ModelEnum {
 
     /**
-     * Hexamon Entity type.
-     */
-    ENTITY("fr.irun.hexamon.api.entity.Entity"),
-
-    /**
+     * Type for reactor Flux.
      * {@link reactor.core.publisher.Flux}
      */
     FLUX("reactor.core.publisher.Flux"),
 
     /**
+     * Type for reactor Mono.
      * {@link reactor.core.publisher.Mono}
      */
     MONO("reactor.core.publisher.Mono"),
