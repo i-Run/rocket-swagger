@@ -78,11 +78,6 @@ mkdir -p /mnt/swagger/api
 ```
 
 ### Pull docker image<id>swagger</id>
-            <phase>package</phase>
-            <goals>
-                <goal>generate</goal>
-            </goals>
-
 ```
 docker pull swaggerapi/swagger-ui
 ```
