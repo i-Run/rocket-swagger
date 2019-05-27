@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 
 class RocketModelConverterTest {
 
-    private static final Iterator<ModelConverter> ITERATOR = Iterators.forArray(new ModelConverter[0]);
+    private static final Iterator<ModelConverter> ITERATOR = Iterators.forArray();
     private static final Annotation[] ANNOTATIONS = new Annotation[]{null};
 
     private RocketModelResolver fluxModelResolver;
@@ -67,7 +67,7 @@ class RocketModelConverterTest {
         final Property expectedProperty = mock(Property.class);
         // Flux
         {
-            when(inputType.getTypeName()).thenReturn("[simple type, " + Flux.class + "]");
+            when(inputType.getTypeName()).thenReturn(buildTypeName(Flux.class));
             when(fluxModelResolver.resolveProperty(any(), any(), any(), any())).thenReturn(expectedProperty);
 
             final Property actualProperty = tested.resolveProperty(inputType, context, ANNOTATIONS, ITERATOR);
@@ -82,7 +82,7 @@ class RocketModelConverterTest {
         }
         // Mono
         {
-            when(inputType.getTypeName()).thenReturn("[simple type, " + Mono.class + "]");
+            when(inputType.getTypeName()).thenReturn(buildTypeName(Mono.class));
             when(monoModelResolver.resolveProperty(any(), any(), any(), any())).thenReturn(expectedProperty);
 
             final Property actualProperty = tested.resolveProperty(inputType, context, ANNOTATIONS, ITERATOR);
@@ -97,7 +97,7 @@ class RocketModelConverterTest {
         }
         // Standard
         {
-            when(inputType.getTypeName()).thenReturn("[simple type, " + String.class + "]");
+            when(inputType.getTypeName()).thenReturn(buildTypeName(String.class));
 
             when(standardModelResolver.resolveProperty(any(), any(), any(), any())).thenReturn(expectedProperty);
 
@@ -119,7 +119,7 @@ class RocketModelConverterTest {
         final Model expectedModel = mock(Model.class);
         // Flux
         {
-            when(inputType.getTypeName()).thenReturn("[simple type, " + Flux.class + "]");
+            when(inputType.getTypeName()).thenReturn(buildTypeName(Flux.class));
             when(fluxModelResolver.resolve(any(), any(), any())).thenReturn(expectedModel);
 
             final Model actualModel = tested.resolve(inputType, context, ITERATOR);
@@ -134,7 +134,7 @@ class RocketModelConverterTest {
         }
         // Mono
         {
-            when(inputType.getTypeName()).thenReturn("[simple type, " + Mono.class + "]");
+            when(inputType.getTypeName()).thenReturn(buildTypeName(Mono.class));
             when(monoModelResolver.resolve(any(), any(), any())).thenReturn(expectedModel);
 
             final Model actualModel = tested.resolve(inputType, context, ITERATOR);
@@ -149,7 +149,7 @@ class RocketModelConverterTest {
         }
         // Standard
         {
-            when(inputType.getTypeName()).thenReturn("[simple type, " + String.class + "]");
+            when(inputType.getTypeName()).thenReturn(buildTypeName(String.class));
             when(standardModelResolver.resolve(any(), any(), any())).thenReturn(expectedModel);
 
             final Model actualModel = tested.resolve(inputType, context, ITERATOR);
@@ -162,6 +162,10 @@ class RocketModelConverterTest {
 
             reset(inputType, fluxModelResolver, monoModelResolver, standardModelResolver);
         }
+    }
+
+    private static String buildTypeName(Class<?> clazz) {
+        return "[simple type, " + clazz + "]";
     }
 
 }

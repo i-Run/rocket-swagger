@@ -30,7 +30,7 @@ import java.util.stream.Stream;
  */
 public class RocketModelConverter implements ModelConverter {
 
-    private final Map<ModelEnum, RocketModelResolver> consolidationMap;
+    private final Map<ModelEnum, RocketModelResolver> resolversMappedByType;
 
 
     /**
@@ -38,7 +38,7 @@ public class RocketModelConverter implements ModelConverter {
      */
     public RocketModelConverter() {
         final ModelConverter baseConverter = new BaseModelConverter();
-        this.consolidationMap = Stream.of(
+        this.resolversMappedByType = Stream.of(
                 new StandardModelResolver(baseConverter),
                 new MonoModelResolver(baseConverter),
                 new FluxModelResolver(baseConverter)
@@ -48,7 +48,7 @@ public class RocketModelConverter implements ModelConverter {
 
     @VisibleForTesting
     RocketModelConverter(Collection<RocketModelResolver> consolidations) {
-        this.consolidationMap = consolidations.stream()
+        this.resolversMappedByType = consolidations.stream()
                 .collect(Collectors.toMap(RocketModelResolver::getModelType, Functions.identity()));
     }
 
@@ -66,7 +66,7 @@ public class RocketModelConverter implements ModelConverter {
     @Nonnull
     private RocketModelResolver getResolverForType(Type type) {
         final ModelEnum modelType = ModelConversionUtils.computeModelType(type);
-        return Optional.ofNullable(consolidationMap.get(modelType))
+        return Optional.ofNullable(resolversMappedByType.get(modelType))
                 .orElseThrow(() -> new RocketSwaggerException("Unable to find model resolver for model type: " + modelType));
     }
 
