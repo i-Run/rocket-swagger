@@ -15,13 +15,13 @@
     </properties>
 
     <scm>
-        <connection>scm:git:git@gitlab.i-run.fr:nora/tooling/nora-swager.git</connection>
-        <developerConnection>scm:git:git@gitlab.i-run.fr:nora/tooling/nora-swager.git</developerConnection>
-        <url>https://gitlab.i-run.fr/nora/tooling/nora-swager.git</url>
+        <connection>scm:git:git@gitlab.i-run.fr:nora/tooling/rocket-swagger.git</connection>
+        <developerConnection>scm:git:git@gitlab.i-run.fr:nora/tooling/rocket-swagger.git</developerConnection>
+        <url>https://gitlab.i-run.fr/nora/tooling/rocket-swagger.git</url>
         <tag>HEAD</tag>
     </scm>
 
-    <artifactId>swagger</artifactId>
+    <artifactId>rocket-swagger</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
