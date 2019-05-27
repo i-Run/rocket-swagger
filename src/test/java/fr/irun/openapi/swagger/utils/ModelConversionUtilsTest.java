@@ -55,16 +55,16 @@ class ModelConversionUtilsTest {
 
     private static Stream<Arguments> classNameParams() {
         return Stream.of(
-                Arguments.of("[simple type : fr.irun.cms.api.model.Page]", "Page", "fr.irun.cms.api.model.Page"),
-                Arguments.of("[simple type : fr.irun.hexamon.api.Entity<fr.irun.cms.api.model.Content>]", "Entity", "fr.irun.hexamon.api.Entity"),
-                Arguments.of("[simple type : fr.irun.hexamon.api.AnyClass]", "AnyClass", "fr.irun.hexamon.api.AnyClass")
+                Arguments.of("fr.irun.cms.api.model.Page", "Page"),
+                Arguments.of("fr.irun.hexamon.api.Entity", "Entity"),
+                Arguments.of("fr.irun.hexamon.api.AnyClass", "AnyClass")
         );
     }
 
     @ParameterizedTest
     @MethodSource("classNameParams")
-    void getClassName(String typeName, String classSimpleName, String fullClassName) {
-        final Type inputType = mockType(typeName);
+    void getClassName(String fullClassName, String classSimpleName) {
+        final Type inputType = mockType(fullClassName);
         final String actualClassName = ModelConversionUtils.getClassName(inputType);
         assertThat(actualClassName).isNotNull();
         assertThat(actualClassName).endsWith(classSimpleName);
