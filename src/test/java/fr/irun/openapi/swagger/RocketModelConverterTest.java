@@ -1,8 +1,12 @@
 package fr.irun.openapi.swagger;
 
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
+import fr.irun.openapi.swagger.resolver.FluxModelResolver;
+import fr.irun.openapi.swagger.resolver.MonoModelResolver;
 import fr.irun.openapi.swagger.resolver.RocketModelResolver;
+import fr.irun.openapi.swagger.resolver.StandardModelResolver;
 import fr.irun.openapi.swagger.utils.ModelEnum;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
@@ -10,6 +14,7 @@ import io.swagger.models.Model;
 import io.swagger.models.properties.Property;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.platform.commons.util.ReflectionUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -17,8 +22,10 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Map;
 
-import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -59,6 +66,34 @@ class RocketModelConverterTest {
         verify(fluxModelResolver).getModelType();
         verify(monoModelResolver).getModelType();
         verify(standardModelResolver).getModelType();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void defaultConstructor() {
+        final String mapFieldName = "resolversMappedByType";
+        final RocketModelConverter actualConverter = new RocketModelConverter();
+
+        final Map<ModelEnum, RocketModelResolver> actualResolverMap = ReflectionUtils.readFieldValue(RocketModelConverter.class, mapFieldName, actualConverter)
+                .filter(Map.class::isInstance)
+                .map(Map.class::cast)
+                .orElseGet(() -> {
+                    fail("No field with name '%s' found into default instance of %s", mapFieldName, RocketModelConverter.class);
+                    return ImmutableMap.of();
+                });
+
+        assertThat(actualResolverMap).isNotNull();
+        assertThat(actualResolverMap).hasSize(3);
+        assertThat(actualResolverMap.values().stream().map(RocketModelResolver::getClass).map(Class::getName))
+                .contains(
+                        StandardModelResolver.class.getName(),
+                        MonoModelResolver.class.getName(),
+                        FluxModelResolver.class.getName()
+                );
+        assertThat(actualResolverMap.keySet()).contains(ModelEnum.STANDARD, ModelEnum.FLUX, ModelEnum.MONO);
+
+        assertThat(actualResolverMap.entrySet().stream())
+                .allMatch(e -> e.getKey().equals(e.getValue().getModelType()));
     }
 
     @Test

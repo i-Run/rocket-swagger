@@ -2,6 +2,7 @@ package fr.irun.openapi.swagger;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
+import com.google.common.collect.ImmutableMap;
 import fr.irun.openapi.swagger.converter.BaseModelConverter;
 import fr.irun.openapi.swagger.exceptions.RocketSwaggerException;
 import fr.irun.openapi.swagger.resolver.FluxModelResolver;
@@ -38,18 +39,23 @@ public class RocketModelConverter implements ModelConverter {
      */
     public RocketModelConverter() {
         final ModelConverter baseConverter = new BaseModelConverter();
-        this.resolversMappedByType = Stream.of(
-                new StandardModelResolver(baseConverter),
-                new MonoModelResolver(baseConverter),
-                new FluxModelResolver(baseConverter)
-        ).collect(Collectors.toMap(RocketModelResolver::getModelType, Functions.identity()));
+
+        this.resolversMappedByType = ImmutableMap.copyOf(
+                Stream.of(
+                        new StandardModelResolver(baseConverter),
+                        new MonoModelResolver(baseConverter),
+                        new FluxModelResolver(baseConverter)
+                ).collect(Collectors.toMap(RocketModelResolver::getModelType, Functions.identity()))
+        );
     }
 
 
     @VisibleForTesting
     RocketModelConverter(Collection<RocketModelResolver> consolidations) {
-        this.resolversMappedByType = consolidations.stream()
-                .collect(Collectors.toMap(RocketModelResolver::getModelType, Functions.identity()));
+        this.resolversMappedByType = ImmutableMap.copyOf(
+                consolidations.stream()
+                        .collect(Collectors.toMap(RocketModelResolver::getModelType, Functions.identity()))
+        );
     }
 
     @Override

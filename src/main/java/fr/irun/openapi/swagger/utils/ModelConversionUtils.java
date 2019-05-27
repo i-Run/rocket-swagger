@@ -99,7 +99,7 @@ public final class ModelConversionUtils {
                 .map(ParameterizedType::getActualTypeArguments)
                 .filter(array -> array.length > 0)
                 .map(array -> array[0])
-                .orElse(
+                .orElseGet(() ->
                         genericTypeNullable
                                 .filter(TypeBase.class::isInstance)
                                 .map(TypeBase.class::cast)
