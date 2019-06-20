@@ -54,7 +54,7 @@ maven:test:
   stage: test
   dependencies:
   - maven:build
-  script: mvn ${MAVEN_CLI_OPTS} test
+  script: mvn ${MAVEN_CLI_OPTS} test -Pintegration
   artifacts:
     reports:
       junit: [
