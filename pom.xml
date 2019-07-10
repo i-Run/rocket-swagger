@@ -6,12 +6,12 @@
     <parent>
         <groupId>fr.irun</groupId>
         <artifactId>rocket-parent</artifactId>
-        <version>3-SNAPSHOT</version>
+        <version>3</version>
     </parent>
 
-    <properties>
-        <hexamon.version>1.3.0-SNAPSHOT</hexamon.version>
-    </properties>
+    <artifactId>rocket-swagger</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
 
     <scm>
         <connection>scm:git:git@gitlab.i-run.fr:nora/tooling/rocket-swagger.git</connection>
@@ -20,9 +20,9 @@
         <tag>HEAD</tag>
     </scm>
 
-    <artifactId>rocket-swagger</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <packaging>jar</packaging>
+    <properties>
+        <hexamon.version>1.3.0</hexamon.version>
+    </properties>
 
     <dependencies>
         <dependency>
