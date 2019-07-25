@@ -107,12 +107,12 @@ maven:deploy:
     - develop
     - master
 
-javadoc:deploy:
+documentation:deploy:
   stage: notify
   allow_failure: true
   cache: {}
   script: 
-    - curl --request POST --form "token=$CI_JOB_TOKEN" --form ref=develop "${CI_API_V4_URL}/projects/65/trigger/pipeline"
+    - curl --request POST --form "token=${CI_JOB_TOKEN}" --form ref=develop "${CI_API_V4_URL}/projects/149/trigger/pipeline"
   only:
     - develop
 
