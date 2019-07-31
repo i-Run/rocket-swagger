@@ -1,5 +1,5 @@
-* [ ] Analyse technique à faire
-* [ ] Analyse technique à valider
+* :arrow_right: **Analyse technique à faire**
+* :arrow_right: **Analyse technique à valider**
 
 ## Analyse technique
 
