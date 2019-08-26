@@ -3,7 +3,7 @@ package fr.irun.openapi.swagger.model;
 import java.lang.reflect.Type;
 
 /**
- * Abstract implementation of a wrapper for a type.
+ * Interface for a wrapper allowing to visit types.
  */
 public interface VisitableType {
 
