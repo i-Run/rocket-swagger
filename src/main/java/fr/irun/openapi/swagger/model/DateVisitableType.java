@@ -8,7 +8,7 @@ import java.lang.reflect.Type;
  * Visitable type for any date type.
  */
 @Builder
-public class DateVisitableType extends AbstractVisitableType {
+public class DateVisitableType implements VisitableType {
 
     public final Type type;
 

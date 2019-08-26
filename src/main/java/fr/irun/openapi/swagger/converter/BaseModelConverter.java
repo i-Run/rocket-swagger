@@ -1,7 +1,7 @@
 package fr.irun.openapi.swagger.converter;
 
 import com.google.common.annotations.VisibleForTesting;
-import fr.irun.openapi.swagger.model.AbstractVisitableType;
+import fr.irun.openapi.swagger.model.VisitableType;
 import fr.irun.openapi.swagger.model.AnyVisitableType;
 import fr.irun.openapi.swagger.model.DateVisitableType;
 import fr.irun.openapi.swagger.model.ResponseEntityVisitableType;
@@ -42,7 +42,7 @@ public final class BaseModelConverter implements ModelConverter {
     public Property resolveProperty(Type type, ModelConverterContext modelConverterContext,
                                     Annotation[] annotations, Iterator<ModelConverter> iterator) {
 
-        final AbstractVisitableType.Visitor<Property> propertyVisitor = new AbstractVisitableType.Visitor<Property>() {
+        final VisitableType.Visitor<Property> propertyVisitor = new VisitableType.Visitor<Property>() {
             @Override
             public Property visitDateType(Type dateType) {
                 return new DateTimeProperty();
@@ -65,7 +65,7 @@ public final class BaseModelConverter implements ModelConverter {
 
     @Override
     public Model resolve(Type type, ModelConverterContext modelConverterContext, Iterator<ModelConverter> iterator) {
-        final AbstractVisitableType.Visitor<Model> modelVisitor = new AbstractVisitableType.Visitor<Model>() {
+        final VisitableType.Visitor<Model> modelVisitor = new VisitableType.Visitor<Model>() {
             @Override
             public Model visitDateType(Type dateType) {
                 return baseConverter.resolve(dateType, modelConverterContext, iterator);
@@ -86,7 +86,7 @@ public final class BaseModelConverter implements ModelConverter {
         return wrapType(type).visit(modelVisitor);
     }
 
-    private AbstractVisitableType wrapType(Type baseType) {
+    private VisitableType wrapType(Type baseType) {
         if (ModelConversionUtils.isDateType(baseType)) {
             return DateVisitableType.builder().type(baseType).build();
         }

@@ -5,14 +5,14 @@ import java.lang.reflect.Type;
 /**
  * Abstract implementation of a wrapper for a type.
  */
-public abstract class AbstractVisitableType {
+public interface VisitableType {
 
     /**
      * Specification of Type visiting methods.
      *
      * @param <T> Type returned by the visitor.
      */
-    public interface Visitor<T> {
+    interface Visitor<T> {
 
         T visitDateType(Type dateType);
 
@@ -28,6 +28,6 @@ public abstract class AbstractVisitableType {
      * @param <T>     Type returned by the visit.
      * @return Visit result.
      */
-    public abstract <T> T visit(Visitor<T> visitor);
+    <T> T visit(Visitor<T> visitor);
 
 }
