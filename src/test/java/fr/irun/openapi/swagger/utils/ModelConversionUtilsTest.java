@@ -3,10 +3,12 @@ package fr.irun.openapi.swagger.utils;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.type.TypeBase;
 import com.fasterxml.jackson.databind.type.TypeBindings;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -33,6 +35,21 @@ class ModelConversionUtilsTest {
 
         assertThat(ModelConversionUtils.isDateType(String.class)).isFalse();
         assertThat(ModelConversionUtils.isDateType(null)).isFalse();
+    }
+
+    @Test
+    void isResponseEntityType() {
+        assertThat(ModelConversionUtils.isResponseEntityType(ResponseEntity.class)).isTrue();
+        {
+            final Type factoryType = TypeFactory.defaultInstance().constructType(ResponseEntity.class);
+            assertThat(ModelConversionUtils.isResponseEntityType(factoryType)).isTrue();
+        }
+        {
+            final Type factoryType = TypeFactory.defaultInstance().constructParametricType(ResponseEntity.class, Void.class);
+            assertThat(ModelConversionUtils.isResponseEntityType(factoryType)).isTrue();
+        }
+        assertThat(ModelConversionUtils.isResponseEntityType(String.class)).isFalse();
+        assertThat(ModelConversionUtils.isResponseEntityType(null)).isFalse();
     }
 
 

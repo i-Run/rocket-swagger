@@ -1,6 +1,8 @@
 package fr.irun.openapi.swagger.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.irun.cms.api.model.Nested;
+import fr.irun.cms.infra.config.jackson.NestedJacksonMixin;
 import fr.irun.hexamon.api.entity.Entity;
 import fr.irun.hexamon.infra.jackson.EntityJacksonMixin;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,7 +21,8 @@ class JacksonFactoryTest {
 
     private static Stream<Arguments> mapperMixinParams() {
         return Stream.of(
-                Arguments.of(Entity.class, EntityJacksonMixin.class)
+                Arguments.of(Entity.class, EntityJacksonMixin.class),
+                Arguments.of(Nested.class, NestedJacksonMixin.class)
         );
     }
 

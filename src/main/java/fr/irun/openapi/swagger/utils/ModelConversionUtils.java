@@ -2,6 +2,7 @@ package fr.irun.openapi.swagger.utils;
 
 import com.fasterxml.jackson.databind.type.TypeBase;
 import com.fasterxml.jackson.databind.type.TypeBindings;
+import org.springframework.http.ResponseEntity;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.ParameterizedType;
@@ -45,11 +46,22 @@ public final class ModelConversionUtils {
      * @param propertyType the type of property.
      * @return true if the type of the property corresponds to a date (Instant or LocalDateTime)
      */
-    public static boolean isDateType(Type propertyType) {
+    public static boolean isDateType(@Nullable Type propertyType) {
         // SimpleType.getTypeName() returns: "[Simple class, java.time.Instant]"
         // -> use a regex in order to extract the real class name.
         String className = getClassName(propertyType);
         return Arrays.stream(DATE_CLASSES).anyMatch(dateClass -> dateClass.getTypeName().equals(className));
+    }
+
+    /**
+     * Verify if a type corresponds to a ResponseEntity.
+     *
+     * @param baseType Base type.
+     * @return True if the type corresponds to a response entity.
+     */
+    public static boolean isResponseEntityType(@Nullable Type baseType) {
+        String className = getClassName(baseType);
+        return ResponseEntity.class.getTypeName().equals(className);
     }
 
     /**
@@ -62,8 +74,8 @@ public final class ModelConversionUtils {
     static String getClassName(@Nullable Type type) {
 
         return Optional.ofNullable(type)
-                .map(t -> {
-                    final String propertyTypeName = t.getTypeName();
+                .map(Type::getTypeName)
+                .map(propertyTypeName -> {
                     final Matcher matcher = FULL_CLASS_NAME_PATTERN.matcher(propertyTypeName);
                     if (matcher.find()) {
                         return matcher.group();
