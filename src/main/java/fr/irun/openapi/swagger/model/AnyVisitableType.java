@@ -8,7 +8,7 @@ import java.lang.reflect.Type;
  * Default visitable type.
  */
 @Builder
-public class AnyVisitableType implements VisitableType {
+public final class AnyVisitableType implements VisitableType {
 
     private final Type type;
 

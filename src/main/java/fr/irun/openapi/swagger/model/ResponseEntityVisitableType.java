@@ -8,7 +8,7 @@ import java.lang.reflect.Type;
  * Visitable type for Spring {@link org.springframework.http.ResponseEntity}.
  */
 @Builder
-public class ResponseEntityVisitableType implements VisitableType {
+public final class ResponseEntityVisitableType implements VisitableType {
 
     private final Type type;
 
