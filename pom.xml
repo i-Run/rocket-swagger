@@ -36,16 +36,6 @@
             <artifactId>hexamon-infra</artifactId>
             <version>${hexamon.version}</version>
         </dependency>
-        <dependency>
-            <groupId>fr.irun</groupId>
-            <artifactId>cms-api</artifactId>
-            <version>${cms.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>fr.irun</groupId>
-            <artifactId>cms-infra</artifactId>
-            <version>${cms.version}</version>
-        </dependency>
 
         <dependency>
             <groupId>io.projectreactor</groupId>

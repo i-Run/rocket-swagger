@@ -5,7 +5,8 @@ import lombok.Builder;
 import java.lang.reflect.Type;
 
 /**
- * Visitable type for Spring {@link org.springframework.http.ResponseEntity}.
+ * Visitable type for Spring org.springframework.http.ResponseEntity.
+ * ResponseEntity wraps the whole content of the HTTP response, whereas swagger only needs to resolve the type of the body.
  */
 @Builder
 public final class ResponseEntityVisitableType implements VisitableType {

@@ -3,12 +3,10 @@ package fr.irun.openapi.swagger.utils;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.type.TypeBase;
 import com.fasterxml.jackson.databind.type.TypeBindings;
-import com.fasterxml.jackson.databind.type.TypeFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -26,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 class ModelConversionUtilsTest {
 
+
     @Test
     void isDateTime() {
         assertThat(ModelConversionUtils.isDateType(Instant.class)).isTrue();
@@ -39,14 +38,13 @@ class ModelConversionUtilsTest {
 
     @Test
     void isResponseEntityType() {
-        assertThat(ModelConversionUtils.isResponseEntityType(ResponseEntity.class)).isTrue();
         {
-            final Type factoryType = TypeFactory.defaultInstance().constructType(ResponseEntity.class);
-            assertThat(ModelConversionUtils.isResponseEntityType(factoryType)).isTrue();
+            final Type inputType = mockType("org.springframework.http.ResponseEntity");
+            assertThat(ModelConversionUtils.isResponseEntityType(inputType)).isTrue();
         }
         {
-            final Type factoryType = TypeFactory.defaultInstance().constructParametricType(ResponseEntity.class, Void.class);
-            assertThat(ModelConversionUtils.isResponseEntityType(factoryType)).isTrue();
+            final Type inputType = mockType("org.springframework.http.ResponseEntity<java.lang.Integer>");
+            assertThat(ModelConversionUtils.isResponseEntityType(inputType)).isTrue();
         }
         assertThat(ModelConversionUtils.isResponseEntityType(String.class)).isFalse();
         assertThat(ModelConversionUtils.isResponseEntityType(null)).isFalse();

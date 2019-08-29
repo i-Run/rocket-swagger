@@ -2,7 +2,6 @@ package fr.irun.openapi.swagger.utils;
 
 import com.fasterxml.jackson.databind.type.TypeBase;
 import com.fasterxml.jackson.databind.type.TypeBindings;
-import org.springframework.http.ResponseEntity;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.ParameterizedType;
@@ -28,6 +27,8 @@ public final class ModelConversionUtils {
      * Pattern for the extraction of the full name of a class.
      */
     private static final Pattern FULL_CLASS_NAME_PATTERN = Pattern.compile(FULL_CLASS_NAME_STRING_PATTERN);
+
+    private static final String RESPONSE_ENTITY_CLASS_NAME = "org.springframework.http.ResponseEntity";
 
     /**
      * Array of all the classes considered as DateTime for the conversion into Property.
@@ -61,7 +62,7 @@ public final class ModelConversionUtils {
      */
     public static boolean isResponseEntityType(@Nullable Type baseType) {
         String className = getClassName(baseType);
-        return ResponseEntity.class.getTypeName().equals(className);
+        return RESPONSE_ENTITY_CLASS_NAME.equals(className);
     }
 
     /**

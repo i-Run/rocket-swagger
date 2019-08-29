@@ -12,9 +12,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.http.ResponseEntity;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -33,6 +33,8 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 class BaseModelConverterTest {
+
+    private static final String RESPONSE_ENTITY_CLASS_NAME = "org.springframework.http.ResponseEntity";
 
     private static final Annotation[] DEFAULT_ANNOTATIONS = new Annotation[0];
 
@@ -73,7 +75,10 @@ class BaseModelConverterTest {
     @Test
     void resolveProperty_should_resolve_ResponseEntity() {
         final JavaType innerType = TypeFactory.defaultInstance().constructType(Integer.class);
-        final Type baseType = TypeFactory.defaultInstance().constructParametricType(ResponseEntity.class, innerType);
+
+        final ParameterizedType baseType = mock(ParameterizedType.class);
+        when(baseType.getTypeName()).thenReturn(RESPONSE_ENTITY_CLASS_NAME);
+        when(baseType.getActualTypeArguments()).thenReturn(new Type[]{innerType});
 
         final Property expectedOutProperty = mock(Property.class);
         when(baseModelConverter.resolveProperty(any(), any(), any(), any())).thenReturn(expectedOutProperty);
@@ -107,7 +112,10 @@ class BaseModelConverterTest {
     @Test
     void resolve_should_resolve_ResponseEntity() {
         final JavaType innerType = TypeFactory.defaultInstance().constructType(Integer.class);
-        final Type baseType = TypeFactory.defaultInstance().constructParametricType(ResponseEntity.class, innerType);
+
+        final ParameterizedType baseType = mock(ParameterizedType.class);
+        when(baseType.getTypeName()).thenReturn(RESPONSE_ENTITY_CLASS_NAME);
+        when(baseType.getActualTypeArguments()).thenReturn(new Type[]{innerType});
 
         final Model expectedOutModel = mock(Model.class);
         when(baseModelConverter.resolve(any(), any(), any())).thenReturn(expectedOutModel);
