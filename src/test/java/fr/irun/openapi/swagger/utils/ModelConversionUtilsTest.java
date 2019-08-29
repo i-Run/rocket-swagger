@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 class ModelConversionUtilsTest {
 
+
     @Test
     void isDateTime() {
         assertThat(ModelConversionUtils.isDateType(Instant.class)).isTrue();
@@ -33,6 +34,20 @@ class ModelConversionUtilsTest {
 
         assertThat(ModelConversionUtils.isDateType(String.class)).isFalse();
         assertThat(ModelConversionUtils.isDateType(null)).isFalse();
+    }
+
+    @Test
+    void isResponseEntityType() {
+        {
+            final Type inputType = mockType("org.springframework.http.ResponseEntity");
+            assertThat(ModelConversionUtils.isResponseEntityType(inputType)).isTrue();
+        }
+        {
+            final Type inputType = mockType("org.springframework.http.ResponseEntity<java.lang.Integer>");
+            assertThat(ModelConversionUtils.isResponseEntityType(inputType)).isTrue();
+        }
+        assertThat(ModelConversionUtils.isResponseEntityType(String.class)).isFalse();
+        assertThat(ModelConversionUtils.isResponseEntityType(null)).isFalse();
     }
 
 

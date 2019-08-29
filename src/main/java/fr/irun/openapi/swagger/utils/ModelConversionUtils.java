@@ -28,6 +28,8 @@ public final class ModelConversionUtils {
      */
     private static final Pattern FULL_CLASS_NAME_PATTERN = Pattern.compile(FULL_CLASS_NAME_STRING_PATTERN);
 
+    private static final String RESPONSE_ENTITY_CLASS_NAME = "org.springframework.http.ResponseEntity";
+
     /**
      * Array of all the classes considered as DateTime for the conversion into Property.
      */
@@ -45,11 +47,22 @@ public final class ModelConversionUtils {
      * @param propertyType the type of property.
      * @return true if the type of the property corresponds to a date (Instant or LocalDateTime)
      */
-    public static boolean isDateType(Type propertyType) {
+    public static boolean isDateType(@Nullable Type propertyType) {
         // SimpleType.getTypeName() returns: "[Simple class, java.time.Instant]"
         // -> use a regex in order to extract the real class name.
         String className = getClassName(propertyType);
         return Arrays.stream(DATE_CLASSES).anyMatch(dateClass -> dateClass.getTypeName().equals(className));
+    }
+
+    /**
+     * Verify if a type corresponds to a ResponseEntity.
+     *
+     * @param baseType Base type.
+     * @return True if the type corresponds to a response entity.
+     */
+    public static boolean isResponseEntityType(@Nullable Type baseType) {
+        String className = getClassName(baseType);
+        return RESPONSE_ENTITY_CLASS_NAME.equals(className);
     }
 
     /**
@@ -62,8 +75,8 @@ public final class ModelConversionUtils {
     static String getClassName(@Nullable Type type) {
 
         return Optional.ofNullable(type)
-                .map(t -> {
-                    final String propertyTypeName = t.getTypeName();
+                .map(Type::getTypeName)
+                .map(propertyTypeName -> {
                     final Matcher matcher = FULL_CLASS_NAME_PATTERN.matcher(propertyTypeName);
                     if (matcher.find()) {
                         return matcher.group();
