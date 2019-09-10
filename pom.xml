@@ -21,22 +21,10 @@
     </scm>
 
     <properties>
-        <hexamon.version>1.3.0</hexamon.version>
-        <cms.version>1.0.0-SNAPSHOT</cms.version>
+        <openapi-generator.version>4.0.0</openapi-generator.version>
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>fr.irun</groupId>
-            <artifactId>hexamon-api</artifactId>
-            <version>${hexamon.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>fr.irun</groupId>
-            <artifactId>hexamon-infra</artifactId>
-            <version>${hexamon.version}</version>
-        </dependency>
-
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
@@ -44,7 +32,7 @@
         <dependency>
             <groupId>org.openapitools</groupId>
             <artifactId>openapi-generator-cli</artifactId>
-            <version>4.0.0</version>
+            <version>${openapi-generator.version}</version>
         </dependency>
 
         <dependency>
