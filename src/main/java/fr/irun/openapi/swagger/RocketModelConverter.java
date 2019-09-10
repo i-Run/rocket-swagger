@@ -1,5 +1,6 @@
 package fr.irun.openapi.swagger;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableMap;
@@ -15,6 +16,7 @@ import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
 import io.swagger.models.Model;
 import io.swagger.models.properties.Property;
+import io.swagger.util.Json;
 
 import javax.annotation.Nonnull;
 import java.lang.annotation.Annotation;
@@ -33,12 +35,15 @@ public class RocketModelConverter implements ModelConverter {
 
     private final Map<ModelEnum, RocketModelResolver> resolversMappedByType;
 
-
     /**
      * Default constructor used by swagger-maven-plugin.
      */
     public RocketModelConverter() {
-        final ModelConverter baseConverter = new BaseModelConverter();
+        this(Json.mapper());
+    }
+
+    public RocketModelConverter(ObjectMapper objectMapper) {
+        final ModelConverter baseConverter = new BaseModelConverter(objectMapper);
 
         this.resolversMappedByType = ImmutableMap.copyOf(
                 Stream.of(
