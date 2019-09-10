@@ -42,6 +42,10 @@ public class RocketModelConverter implements ModelConverter {
         this(Json.mapper());
     }
 
+    /**
+     * Constructor used to customize Jackson configuration.
+     * @param objectMapper Mapper from Jackson configuration.
+     */
     public RocketModelConverter(ObjectMapper objectMapper) {
         final ModelConverter baseConverter = new BaseModelConverter(objectMapper);
 
