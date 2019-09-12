@@ -23,7 +23,6 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -33,7 +32,7 @@ import java.util.stream.Stream;
  */
 public class RocketModelConverter implements ModelConverter {
 
-    private final Map<ModelEnum, RocketModelResolver> resolversMappedByType;
+    private final ImmutableMap<ModelEnum, RocketModelResolver> resolversMappedByType;
 
     /**
      * Default constructor used by swagger-maven-plugin.
@@ -44,6 +43,7 @@ public class RocketModelConverter implements ModelConverter {
 
     /**
      * Constructor used to customize Jackson configuration.
+     *
      * @param objectMapper Mapper from Jackson configuration.
      */
     public RocketModelConverter(ObjectMapper objectMapper) {
@@ -58,13 +58,17 @@ public class RocketModelConverter implements ModelConverter {
         );
     }
 
-
     @VisibleForTesting
     RocketModelConverter(Collection<RocketModelResolver> consolidations) {
         this.resolversMappedByType = ImmutableMap.copyOf(
                 consolidations.stream()
                         .collect(Collectors.toMap(RocketModelResolver::getModelType, Functions.identity()))
         );
+    }
+
+    @VisibleForTesting
+    ImmutableMap<ModelEnum, RocketModelResolver> getResolversMappedByType() {
+        return resolversMappedByType;
     }
 
     @Override
