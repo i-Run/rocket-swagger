@@ -1,11 +1,11 @@
 package fr.irun.openapi.swagger.converter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
-import fr.irun.openapi.swagger.model.VisitableType;
 import fr.irun.openapi.swagger.model.AnyVisitableType;
 import fr.irun.openapi.swagger.model.DateVisitableType;
 import fr.irun.openapi.swagger.model.ResponseEntityVisitableType;
-import fr.irun.openapi.swagger.utils.JacksonFactory;
+import fr.irun.openapi.swagger.model.VisitableType;
 import fr.irun.openapi.swagger.utils.ModelConversionUtils;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
@@ -28,8 +28,8 @@ public final class BaseModelConverter implements ModelConverter {
      */
     private final ModelConverter baseConverter;
 
-    public BaseModelConverter() {
-        baseConverter = new ModelResolver(JacksonFactory.buildObjectMapper());
+    public BaseModelConverter(ObjectMapper objectMapper) {
+        baseConverter = new ModelResolver(objectMapper);
     }
 
     @VisibleForTesting
