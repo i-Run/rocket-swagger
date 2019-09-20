@@ -21,7 +21,6 @@ function next_snapshot() {
         return 0;
     fi;
 }
-declare -a MVN_ARGS; IFS=' ' read -r -a MVN_ARGS <<< "${MAVEN_CLI_OPTS:-""}"
 
-readonly version="$(mvn "${MVN_ARGS[@]}" org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate -Dexpression=project.version -q -DforceStdout)"
-next_snapshot "$version"
+readonly v="$(mvn org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate -Dexpression=project.version -q -DforceStdout)"
+next_snapshot "$v"
