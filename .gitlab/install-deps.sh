@@ -117,20 +117,33 @@ function installDependency() {
     local -r gitDir="/tmp/git/${projetName}"
 
     if [ -d "$gitDir" ]; then
+        info "on '$repository' : '$gitDir' already exist "
         return 0
     fi
-
-    mkdir -p "${gitDir}" 
+   
+    mkdir -p "${gitDir}"
     if [[ "$version" = *"SNAPSHOT" ]]; then
-        debug "repository: ${repository}, projetName: ${projetName}, version: ${version}"
-        debug "$(git clone "$repository" "$gitDir" 2>&1)"
-        if git -C "${gitDir}" checkout "${CI_COMMIT_REF_NAME}" > /dev/null 2>&1; then
-            debug "$(git pull origin "${CI_COMMIT_REF_NAME}" 2>&1)"
-            installDependencies "$gitDir"
-            mvn "${MVN_ARGS[@]}" clean install -f "$gitDir" -DskipTests
-            installed+=( "${projetName}" )
+        info "repository: ${repository}, projetName: ${projetName}, version: ${version}"
+        if git clone "$repository" "$gitDir"; then
+            local pattern; pattern="$(echo "${CI_COMMIT_REF_NAME}"|sed 's:^.*/[0-9]*.::')" #  i remove string/number/string
+            local allBranch; allBranch="$(git -C "${gitDir}" branch -a )" # view all branch
+            local selectBranch; selectBranch="$(cat <<< "$allBranch"| grep "$pattern" || true)" # select branch we have the same name of project
+            local localBranch; localBranch="$(echo "${selectBranch}"|sed 's:^.*origin/::' || true)" # remove "remotes/origin/"
+            debug "see all branch: \n ${allBranch}"
+            debug " pattern : ${pattern}"
+            debug "selected branch: $selectBranch"
+            debug "selected local branch: $localBranch "
+            if git -C "${gitDir}" checkout "${localBranch}" > /dev/null 2>&1; then
+                debug "$(git -C "${gitDir}" pull origin "${localBranch}" 2>&1)"
+                installDependencies "$gitDir"
+                mvn "${MVN_ARGS[@]}" clean install -f "$gitDir" -DskipTests
+                installed+=( "${projetName}" )
+            else
+                debug "No refs '${localBranch}' for ${projetName}"
+            fi
         else
-            debug "No refs '${CI_COMMIT_REF_NAME}' for ${projetName}"
+            rmdir "${gitDir}"
+            warn "exit code on git clone '$repository', cleanning : '$gitDir'"
         fi
     fi
 }
@@ -141,29 +154,26 @@ function installDependencies() {
     downloadDependenciesParentPom "$prefix"
 
     local -a dependencies; dependencies=( "$(getDependencies "$prefix")" )
-
     local -a repositories=()
+    debug "print value of dependencies : ${dependencies[*]}"
     local m; for m in ${dependencies[*]}; do
+        echo "${m}" | grep -oq ERROR && fatal "Error on dependencies: ${m}"
         local module; module="$(cut -d':' -f2 <<< "$m" )"
         local version; version="$(cut -d':' -f4 <<< "$m" )"
-
         # If module is the same as current we jump to the next
         [[ "${CURRENT_ARTIFACT_ID[*]}" == *"${module}"* ]] && continue
         debug "${module} -> ${version}"
-
-
         while read -r -d '' pomFile; do
             local tmprepo; tmprepo="$(grep -oPm1 "(?<=<connection>scm:git:)[^<]+" < "$pomFile")"
             if [[ -n "$tmprepo" ]]; then
                 repositories+=( "${tmprepo} ${version}" )
             fi
         done < <(find . -name "*.pom" -exec grep -lHZ "<module>${module}</module>" {} \;) || true
-    done 
+    done
 
     IFS=$'\n' repositories=( "$(sort -u <<<"${repositories[*]}")" )
-
+        
     debug "repo: \\n${repositories[*]}"
-
     for r in ${repositories[*]}; do
         local -a rr; IFS=' ' read -r -a rr <<< "$r"
         installDependency "${rr[@]}"
@@ -173,7 +183,6 @@ function installDependencies() {
 
 if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
     trap cleanup EXIT
-
     # Parse command line arguments
     POSITIONAL=()
     verbose=false

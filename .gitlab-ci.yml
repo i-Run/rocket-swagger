@@ -22,9 +22,12 @@ stages:
 
 maven:build:
   stage: build
-  before_script:
+  before_script:  
     - find "${CI_PROJECT_DIR}/.m2/repository" -type f -name "*SNAPSHOT*" -delete || true
     - .gitlab/install-deps.sh
+    - echo "________________________________"
+    - echo "          NEXT                  "
+    - echo "________________________________"
   script:
     - mvn ${MAVEN_CLI_OPTS} clean install -DskipTests
   artifacts:
@@ -58,6 +61,9 @@ maven:test:
   artifacts:
     reports:
       junit: [
+        review-api/target/surefire-reports/TEST-*.xml,
+        review-domain/target/surefire-reports/TEST-*.xml,
+        review-infra/target/surefire-reports/TEST-*.xml
       ]
 
 maven:release:
