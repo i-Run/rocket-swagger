@@ -19,12 +19,14 @@ readonly YELLOW="\\e[1;33m"
 readonly DIM="\\e[2m"
 readonly BOLD="\\e[1m"
 readonly LOG_FILE="/tmp/$(basename "$0").log"
+readonly BLUE="\\e[34m"
 function log() {
   ( flock -n 200
     color="$1"; level="$2"; message="$3"
     printf "${color}%-9s %s\\e[m\\n" "[${level}]" "$message" | tee -a "$LOG_FILE" >&2 
   ) 200>"/var/lock/.$(basename "$0").log.lock"
 }
+function prog()  { log "$BLUE" "${BASH_SOURCE[0]}" "$*"; }
 function debug() { if [ "$verbose" = true ]; then log "$DIM"    "DEBUG"   "$*"; fi }
 function info()  { log "$NORMAL" "INFO"    "$*"; }
 function warn()  { log "$YELLOW" "WARNING" "$*"; }
@@ -183,6 +185,7 @@ function installDependencies() {
 
 if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
     trap cleanup EXIT
+    prog "START OF PROGRAM"   
     # Parse command line arguments
     POSITIONAL=()
     verbose=false
@@ -213,5 +216,5 @@ if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
 
     installed=()
     installDependencies "."
-    
+    prog "END OF PROGRAM"    
 fi
