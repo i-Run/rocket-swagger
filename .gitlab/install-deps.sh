@@ -62,7 +62,8 @@ function getDependencies() {
     local -r prefix="$1"
     local -a dependencies=()
 
-    dependencies+=( "$(mvn "${MVN_ARGS[@]}" dependency:list -DexcludeTransitive=true -DoutputFile=/dev/stdout -q -f "$prefix" | grep "${IRUN_GROUP_ID}")" )
+    dependencies+=( "$(mvn "${MVN_ARGS[@]}" dependency:tree -DexcludeTransitive=true -DoutputFile=/dev/stdout -q -f "$prefix" | grep "${IRUN_GROUP_ID}" \
+                | grep -v INFO | cut -d 'f' -f2- | sed 's/^/f/' )" )
     dependencies=( "$(sort -u <<<"${dependencies[*]}")" )
 
     debug "${dependencies[@]}"
