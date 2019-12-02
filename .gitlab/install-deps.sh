@@ -55,6 +55,7 @@ function cleanup() {
 
 readonly VERSION_SEPARATOR="\\u02DF"
 readonly IRUN_GROUP_ID="fr.irun"
+readonly IRUN_PATTERN="(fr.irun:.*)"
 declare -a MVN_ARGS; IFS=' ' read -r -a MVN_ARGS <<< "${MAVEN_CLI_OPTS:-""}"
 
 
@@ -62,7 +63,8 @@ function getDependencies() {
     local -r prefix="$1"
     local -a dependencies=()
 
-    dependencies+=( "$(mvn "${MVN_ARGS[@]}" dependency:list -DexcludeTransitive=true -DoutputFile=/dev/stdout -q -f "$prefix" | grep "${IRUN_GROUP_ID}")" )
+    dependencies+=( "$(mvn "${MVN_ARGS[@]}" dependency:tree -DexcludeTransitive=true \
+                    -DoutputFile=/dev/stdout -q -f "$prefix" | grep -v INFO | grep -oP "${IRUN_PATTERN}" )" )
     dependencies=( "$(sort -u <<<"${dependencies[*]}")" )
 
     debug "${dependencies[@]}"
