@@ -21,21 +21,21 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-class StandardModelResolverTest {
+class DefaultModelResolverTest {
 
     private static final Annotation[] ANNOTATIONS = new Annotation[0];
 
     private ModelConverter modelConverter;
     private ModelConverterContext context;
 
-    private StandardModelResolver tested;
+    private DefaultModelResolver tested;
 
     @BeforeEach
     void setUp() {
         modelConverter = mock(ModelConverter.class);
         context = mock(ModelConverterContext.class);
 
-        tested = new StandardModelResolver(modelConverter);
+        tested = new DefaultModelResolver(modelConverter);
     }
 
     @Test

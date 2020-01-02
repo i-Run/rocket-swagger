@@ -13,7 +13,7 @@ import java.util.Iterator;
 /**
  * Default Model resolver.
  */
-public class StandardModelResolver implements RocketModelResolver {
+public class DefaultModelResolver implements RocketModelResolver {
 
     private final ModelConverter modelConverter;
 
@@ -22,7 +22,7 @@ public class StandardModelResolver implements RocketModelResolver {
      *
      * @param modelConverter The base used Model converter.
      */
-    public StandardModelResolver(ModelConverter modelConverter) {
+    public DefaultModelResolver(ModelConverter modelConverter) {
         this.modelConverter = modelConverter;
     }
 

@@ -6,10 +6,11 @@ import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableMap;
 import fr.irun.openapi.swagger.converter.BaseModelConverter;
 import fr.irun.openapi.swagger.exceptions.RocketSwaggerException;
+import fr.irun.openapi.swagger.resolver.DateTimeModelResolver;
 import fr.irun.openapi.swagger.resolver.GenericArrayModelResolver;
 import fr.irun.openapi.swagger.resolver.GenericModelResolver;
 import fr.irun.openapi.swagger.resolver.RocketModelResolver;
-import fr.irun.openapi.swagger.resolver.StandardModelResolver;
+import fr.irun.openapi.swagger.resolver.DefaultModelResolver;
 import fr.irun.openapi.swagger.utils.ModelConversionUtils;
 import fr.irun.openapi.swagger.utils.ResolutionStrategy;
 import io.swagger.converter.ModelConverter;
@@ -21,7 +22,6 @@ import io.swagger.util.Json;
 import javax.annotation.Nonnull;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -51,7 +51,8 @@ public class RocketModelConverter implements ModelConverter {
 
         this.resolversMappedByType = ImmutableMap.copyOf(
                 Stream.of(
-                        new StandardModelResolver(baseConverter),
+                        new DefaultModelResolver(baseConverter),
+                        new DateTimeModelResolver(),
                         new GenericModelResolver(baseConverter),
                         new GenericArrayModelResolver(baseConverter)
                 ).collect(Collectors.toMap(RocketModelResolver::getResolutionStrategy, Functions.identity()))
@@ -59,11 +60,8 @@ public class RocketModelConverter implements ModelConverter {
     }
 
     @VisibleForTesting
-    RocketModelConverter(Collection<RocketModelResolver> consolidations) {
-        this.resolversMappedByType = ImmutableMap.copyOf(
-                consolidations.stream()
-                        .collect(Collectors.toMap(RocketModelResolver::getResolutionStrategy, Functions.identity()))
-        );
+    RocketModelConverter(ImmutableMap<ResolutionStrategy, RocketModelResolver> resolvers) {
+        this.resolversMappedByType = resolvers;
     }
 
     @VisibleForTesting
