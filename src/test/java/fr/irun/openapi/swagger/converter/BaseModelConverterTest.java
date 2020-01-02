@@ -47,7 +47,7 @@ class BaseModelConverterTest {
     }
 
     @Test
-    void resolveProperty_should_resolve_ResponseEntity() {
+    void should_resolve_ResponseEntity_property() {
         final JavaType innerType = TypeFactory.defaultInstance().constructType(Integer.class);
 
         final ParameterizedType baseType = mock(ParameterizedType.class);
@@ -67,7 +67,7 @@ class BaseModelConverterTest {
     }
 
     @Test
-    void resolveProperty_should_resolve_any_other_type() {
+    void should_resolve_any_other_type_property() {
         final Property expectedOutProperty = mock(Property.class);
         final Type inputType = mock(Type.class);
         when(inputType.getTypeName()).thenReturn(String.class.getName());
@@ -84,7 +84,7 @@ class BaseModelConverterTest {
     }
 
     @Test
-    void resolve_should_resolve_ResponseEntity() {
+    void should_resolve_ResponseEntity_model() {
         final JavaType innerType = TypeFactory.defaultInstance().constructType(Integer.class);
 
         final ParameterizedType baseType = mock(ParameterizedType.class);
@@ -104,7 +104,7 @@ class BaseModelConverterTest {
     }
 
     @Test
-    void resolve_should_resolve_any_other_type() {
+    void should_resolve_any_other_type_model() {
         {
             final Model expectedModel = mock(Model.class);
             final Type inputType = TypeFactory.defaultInstance().constructType(Instant.class);
