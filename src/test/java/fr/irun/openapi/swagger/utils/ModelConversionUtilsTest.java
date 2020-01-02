@@ -1,6 +1,7 @@
 package fr.irun.openapi.swagger.utils;
 
 import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.type.TypeBase;
 import com.fasterxml.jackson.databind.type.TypeBindings;
 import org.assertj.core.util.Arrays;
@@ -27,6 +28,7 @@ class ModelConversionUtilsTest {
         return Stream.of(
                 Arguments.of(Mono.class, ResolutionStrategy.WRAP_GENERIC),
                 Arguments.of(Flux.class, ResolutionStrategy.WRAP_GENERIC_ARRAY),
+                Arguments.of(JsonNode.class, ResolutionStrategy.MAP),
                 Arguments.of(String.class, ResolutionStrategy.DEFAULT),
                 Arguments.of(Instant.class, ResolutionStrategy.DATE_TIME),
                 Arguments.of(LocalDateTime.class, ResolutionStrategy.DATE_TIME),
