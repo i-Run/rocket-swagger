@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.Iterator;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -46,7 +47,7 @@ class MapModelResolverTest {
     void should_resolve_map_property() {
         final Iterator<ModelConverter> converterChain = Iterators.forArray(converterMock);
         final Property expected = mock(Property.class);
-        when(converterMock.resolveProperty(MapModelResolver.RESOLVED_TYPE, contextMock, ANNOTATIONS, converterChain)).thenReturn(expected);
+        when(converterMock.resolveProperty(Map.class, contextMock, ANNOTATIONS, converterChain)).thenReturn(expected);
 
         final Type inputType = mock(Type.class);
         final Property actual = tested.resolveProperty(inputType, contextMock, ANNOTATIONS, converterChain);
@@ -54,7 +55,7 @@ class MapModelResolverTest {
         assertThat(actual).isNotNull();
         assertThat(actual).isSameAs(expected);
 
-        verify(converterMock).resolveProperty(MapModelResolver.RESOLVED_TYPE, contextMock, ANNOTATIONS, converterChain);
+        verify(converterMock).resolveProperty(Map.class, contextMock, ANNOTATIONS, converterChain);
         verifyNoMoreInteractions(converterMock);
         verifyZeroInteractions(contextMock, inputType);
     }
@@ -63,7 +64,7 @@ class MapModelResolverTest {
     void should_resolve_map_model() {
         final Iterator<ModelConverter> converterChain = Iterators.forArray(converterMock);
         final Model expected = mock(Model.class);
-        when(converterMock.resolve(MapModelResolver.RESOLVED_TYPE, contextMock, converterChain)).thenReturn(expected);
+        when(converterMock.resolve(Map.class, contextMock, converterChain)).thenReturn(expected);
 
         final Type inputType = mock(Type.class);
         final Model actual = tested.resolve(inputType, contextMock, converterChain);
@@ -71,7 +72,7 @@ class MapModelResolverTest {
         assertThat(actual).isNotNull();
         assertThat(actual).isSameAs(expected);
 
-        verify(converterMock).resolve(MapModelResolver.RESOLVED_TYPE, contextMock, converterChain);
+        verify(converterMock).resolve(Map.class, contextMock, converterChain);
         verifyNoMoreInteractions(converterMock);
         verifyZeroInteractions(contextMock, inputType);
     }

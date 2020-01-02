@@ -1,7 +1,5 @@
 package fr.irun.openapi.swagger.resolver;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import fr.irun.openapi.swagger.utils.ResolutionStrategy;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
@@ -11,11 +9,14 @@ import io.swagger.models.properties.Property;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.Iterator;
+import java.util.Map;
 
+/**
+ * Resolver to resolve a type as a Map.
+ */
 public class MapModelResolver implements RocketModelResolver {
 
-    @VisibleForTesting
-    static final Class<?> RESOLVED_TYPE = ImmutableMap.<String, Object>of().getClass();
+    private static final Type RESOLVED_TYPE = Map.class;
 
     @Override
     public ResolutionStrategy getResolutionStrategy() {
