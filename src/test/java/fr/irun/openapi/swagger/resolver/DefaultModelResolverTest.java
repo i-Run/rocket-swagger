@@ -25,17 +25,17 @@ class DefaultModelResolverTest {
 
     private static final Annotation[] ANNOTATIONS = new Annotation[0];
 
-    private ModelConverter modelConverter;
-    private ModelConverterContext context;
+    private ModelConverter converterMock;
+    private ModelConverterContext contextMock;
 
     private DefaultModelResolver tested;
 
     @BeforeEach
     void setUp() {
-        modelConverter = mock(ModelConverter.class);
-        context = mock(ModelConverterContext.class);
+        converterMock = mock(ModelConverter.class);
+        contextMock = mock(ModelConverterContext.class);
 
-        tested = new DefaultModelResolver(modelConverter);
+        tested = new DefaultModelResolver();
     }
 
     @Test
@@ -44,33 +44,43 @@ class DefaultModelResolverTest {
     }
 
     @Test
-    void resolveProperty() {
+    void should_resolve_property() {
         final Type baseType = mock(Type.class);
         final Property expectedProperty = mock(Property.class);
-        final Iterator<ModelConverter> iterator = Iterators.forArray();
-        when(modelConverter.resolveProperty(any(), any(), any(), any())).thenReturn(expectedProperty);
+        final Iterator<ModelConverter> iterator = Iterators.forArray(converterMock);
+        when(converterMock.resolveProperty(any(), any(), any(), any())).thenReturn(expectedProperty);
 
-        final Property actualProperty = tested.resolveProperty(baseType, context, ANNOTATIONS, iterator);
+        final Property actualProperty = tested.resolveProperty(baseType, contextMock, ANNOTATIONS, iterator);
 
         assertThat(actualProperty).isNotNull();
         assertThat(actualProperty).isSameAs(expectedProperty);
-        verify(modelConverter).resolveProperty(same(baseType), same(context), same(ANNOTATIONS), same(iterator));
-        verifyNoMoreInteractions(modelConverter);
+        verify(converterMock).resolveProperty(same(baseType), same(contextMock), same(ANNOTATIONS), same(iterator));
+        verifyNoMoreInteractions(converterMock);
 
     }
 
     @Test
-    void resolve() {
+    void should_resolve_model() {
         final Type baseType = mock(Type.class);
         final Model expectedModel = mock(Model.class);
-        final Iterator<ModelConverter> iterator = Iterators.forArray();
-        when(modelConverter.resolve(any(), any(), any())).thenReturn(expectedModel);
+        final Iterator<ModelConverter> iterator = Iterators.forArray(converterMock);
+        when(converterMock.resolve(any(), any(), any())).thenReturn(expectedModel);
 
-        final Model actualModel = tested.resolve(baseType, context, iterator);
+        final Model actualModel = tested.resolve(baseType, contextMock, iterator);
 
         assertThat(actualModel).isNotNull();
         assertThat(actualModel).isSameAs(expectedModel);
-        verify(modelConverter).resolve(same(baseType), same(context), same(iterator));
-        verifyNoMoreInteractions(modelConverter);
+        verify(converterMock).resolve(same(baseType), same(contextMock), same(iterator));
+        verifyNoMoreInteractions(converterMock);
+    }
+
+    @Test
+    void should_resolve_null_property_if_no_more_converter() {
+        assertThat(tested.resolveProperty(mock(Type.class), contextMock, ANNOTATIONS, Iterators.forArray())).isNull();
+    }
+
+    @Test
+    void should_resolve_model_if_no_more_converter() {
+        assertThat(tested.resolve(mock(Type.class), contextMock, Iterators.forArray())).isNull();
     }
 }

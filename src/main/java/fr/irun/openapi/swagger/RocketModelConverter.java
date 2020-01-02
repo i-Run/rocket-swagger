@@ -4,17 +4,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableMap;
-import fr.irun.openapi.swagger.converter.BaseModelConverter;
 import fr.irun.openapi.swagger.exceptions.RocketSwaggerException;
 import fr.irun.openapi.swagger.resolver.DateTimeModelResolver;
+import fr.irun.openapi.swagger.resolver.DefaultModelResolver;
 import fr.irun.openapi.swagger.resolver.GenericArrayModelResolver;
 import fr.irun.openapi.swagger.resolver.GenericModelResolver;
 import fr.irun.openapi.swagger.resolver.RocketModelResolver;
-import fr.irun.openapi.swagger.resolver.DefaultModelResolver;
 import fr.irun.openapi.swagger.utils.ModelConversionUtils;
 import fr.irun.openapi.swagger.utils.ResolutionStrategy;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
+import io.swagger.converter.ModelConverters;
+import io.swagger.jackson.ModelResolver;
 import io.swagger.models.Model;
 import io.swagger.models.properties.Property;
 import io.swagger.util.Json;
@@ -47,14 +48,15 @@ public class RocketModelConverter implements ModelConverter {
      * @param objectMapper Mapper from Jackson configuration.
      */
     public RocketModelConverter(ObjectMapper objectMapper) {
-        final ModelConverter baseConverter = new BaseModelConverter(objectMapper);
+        // Required to use the expected object mapper for the conversion
+        ModelConverters.getInstance().addConverter(new ModelResolver(objectMapper));
 
         this.resolversMappedByType = ImmutableMap.copyOf(
                 Stream.of(
-                        new DefaultModelResolver(baseConverter),
+                        new DefaultModelResolver(),
                         new DateTimeModelResolver(),
-                        new GenericModelResolver(baseConverter),
-                        new GenericArrayModelResolver(baseConverter)
+                        new GenericModelResolver(),
+                        new GenericArrayModelResolver()
                 ).collect(Collectors.toMap(RocketModelResolver::getResolutionStrategy, Functions.identity()))
         );
     }

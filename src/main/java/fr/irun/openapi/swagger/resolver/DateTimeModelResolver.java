@@ -6,6 +6,8 @@ import io.swagger.converter.ModelConverterContext;
 import io.swagger.models.Model;
 import io.swagger.models.properties.DateTimeProperty;
 import io.swagger.models.properties.Property;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
@@ -17,6 +19,8 @@ import java.util.Iterator;
  */
 public class DateTimeModelResolver implements RocketModelResolver {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(DateTimeModelResolver.class);
+
     @Override
     public ResolutionStrategy getResolutionStrategy() {
         return ResolutionStrategy.DATE_TIME;
@@ -24,13 +28,16 @@ public class DateTimeModelResolver implements RocketModelResolver {
 
     @Override
     public Property resolveProperty(Type type, ModelConverterContext context, Annotation[] annotations, Iterator<ModelConverter> iterator) {
+        LOGGER.trace("Strategy {} - resolve property for type {}", getResolutionStrategy(), type);
         return new DateTimeProperty();
     }
 
     @Override
     public Model resolve(Type type, ModelConverterContext context, Iterator<ModelConverter> iterator) {
         if (iterator.hasNext()) {
-            return iterator.next().resolve(type, context, iterator);
+            final ModelConverter converter = iterator.next();
+            LOGGER.trace("Strategy {} - resolve model for type {} with converter {}", getResolutionStrategy(), type, converter.getClass());
+            return converter.resolve(type, context, iterator);
         }
         return null;
     }

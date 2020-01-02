@@ -7,6 +7,8 @@ import io.swagger.converter.ModelConverterContext;
 import io.swagger.models.Model;
 import io.swagger.models.properties.ArrayProperty;
 import io.swagger.models.properties.Property;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
@@ -17,16 +19,7 @@ import java.util.Iterator;
  */
 public class GenericArrayModelResolver implements RocketModelResolver {
 
-    private final ModelConverter modelConverter;
-
-    /**
-     * Constructor.
-     *
-     * @param modelConverter the base model converter.
-     */
-    public GenericArrayModelResolver(ModelConverter modelConverter) {
-        this.modelConverter = modelConverter;
-    }
+    private static final Logger LOGGER = LoggerFactory.getLogger(GenericArrayModelResolver.class);
 
     @Override
     public ResolutionStrategy getResolutionStrategy() {
@@ -35,20 +28,26 @@ public class GenericArrayModelResolver implements RocketModelResolver {
 
 
     @Override
-    public Property resolveProperty(Type fluxType,
-                                    ModelConverterContext modelConverterContext,
-                                    Annotation[] annotations,
-                                    Iterator<ModelConverter> iterator) {
-
-        // Property of type MyWrapper<T> converted to T[]
-        final Type innerFluxType = ModelConversionUtils.extractGenericFirstInnerType(fluxType);
-        final Property baseProperty = modelConverter.resolveProperty(innerFluxType, modelConverterContext, annotations, iterator);
-        return new ArrayProperty(baseProperty);
+    public Property resolveProperty(Type fluxType, ModelConverterContext context, Annotation[] annotations, Iterator<ModelConverter> iterator) {
+        if (iterator.hasNext()) {
+            // Property of type MyWrapper<T> converted to T[]
+            final Type innerFluxType = ModelConversionUtils.extractGenericFirstInnerType(fluxType);
+            final ModelConverter converter = iterator.next();
+            LOGGER.trace("Strategy {}: resolve property type {} with {}", getResolutionStrategy(), innerFluxType, converter.getClass());
+            final Property baseProperty = converter.resolveProperty(innerFluxType, context, annotations, iterator);
+            return new ArrayProperty(baseProperty);
+        }
+        return null;
     }
 
     @Override
-    public Model resolve(Type fluxType, ModelConverterContext modelConverterContext, Iterator<ModelConverter> iterator) {
-        final Type innerFluxType = ModelConversionUtils.extractGenericFirstInnerType(fluxType);
-        return modelConverter.resolve(innerFluxType, modelConverterContext, iterator);
+    public Model resolve(Type fluxType, ModelConverterContext modelConvertcontextrContext, Iterator<ModelConverter> iterator) {
+        if (iterator.hasNext()) {
+            final Type innerFluxType = ModelConversionUtils.extractGenericFirstInnerType(fluxType);
+            final ModelConverter converter = iterator.next();
+            LOGGER.trace("Strategy {}: resolve model type {} with {}", getResolutionStrategy(), innerFluxType, converter.getClass());
+            return converter.resolve(innerFluxType, modelConvertcontextrContext, iterator);
+        }
+        return null;
     }
 }

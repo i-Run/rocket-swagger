@@ -5,6 +5,8 @@ import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
 import io.swagger.models.Model;
 import io.swagger.models.properties.Property;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
@@ -15,16 +17,7 @@ import java.util.Iterator;
  */
 public class DefaultModelResolver implements RocketModelResolver {
 
-    private final ModelConverter modelConverter;
-
-    /**
-     * Constructor.
-     *
-     * @param modelConverter The base used Model converter.
-     */
-    public DefaultModelResolver(ModelConverter modelConverter) {
-        this.modelConverter = modelConverter;
-    }
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultModelResolver.class);
 
     @Override
     public ResolutionStrategy getResolutionStrategy() {
@@ -33,11 +26,21 @@ public class DefaultModelResolver implements RocketModelResolver {
 
     @Override
     public Property resolveProperty(Type type, ModelConverterContext context, Annotation[] annotations, Iterator<ModelConverter> iterator) {
-        return modelConverter.resolveProperty(type, context, annotations, iterator);
+        if (iterator.hasNext()) {
+            final ModelConverter converter = iterator.next();
+            LOGGER.trace("Strategy {}: resolve property type {} with {}", getResolutionStrategy(), type, converter.getClass());
+            return converter.resolveProperty(type, context, annotations, iterator);
+        }
+        return null;
     }
 
     @Override
     public Model resolve(Type type, ModelConverterContext modelConverterContext, Iterator<ModelConverter> iterator) {
-        return modelConverter.resolve(type, modelConverterContext, iterator);
+        if (iterator.hasNext()) {
+            final ModelConverter converter = iterator.next();
+            LOGGER.trace("Strategy {}: resolve model type {} with {}", getResolutionStrategy(), type, converter.getClass());
+            return converter.resolve(type, modelConverterContext, iterator);
+        }
+        return null;
     }
 }

@@ -1,5 +1,6 @@
 package fr.irun.openapi.swagger.resolver;
 
+import com.google.common.collect.Iterators;
 import fr.irun.openapi.swagger.utils.ResolutionStrategy;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
@@ -28,18 +29,15 @@ class GenericArrayModelResolverTest {
 
     private ModelConverter modelConverter;
     private ModelConverterContext context;
-    private Iterator<ModelConverter> converterChain;
 
     private GenericArrayModelResolver tested;
 
     @BeforeEach
-    @SuppressWarnings("unchecked")
     void setUp() {
         modelConverter = mock(ModelConverter.class);
         context = mock(ModelConverterContext.class);
-        converterChain = mock(Iterator.class);
 
-        tested = new GenericArrayModelResolver(modelConverter);
+        tested = new GenericArrayModelResolver();
     }
 
     @Test
@@ -48,7 +46,7 @@ class GenericArrayModelResolverTest {
     }
 
     @Test
-    void resolveProperty() {
+    void should_resolve_property() {
         final Type innerFluxType = mock(Type.class);
         final ParameterizedType fluxType = mock(ParameterizedType.class);
         final Property expectedProperty = mock(Property.class);
@@ -58,6 +56,7 @@ class GenericArrayModelResolverTest {
         });
         when(modelConverter.resolveProperty(any(), any(), any(), any())).thenReturn(expectedProperty);
 
+        final Iterator<ModelConverter> converterChain = Iterators.forArray(modelConverter);
         final Property actualProperty = tested.resolveProperty(fluxType, context, ANNOTATIONS, converterChain);
         assertThat(actualProperty).isNotNull();
         assertThat(actualProperty).isInstanceOf(ArrayProperty.class);
@@ -69,7 +68,7 @@ class GenericArrayModelResolverTest {
     }
 
     @Test
-    void resolve() {
+    void should_resolve_model() {
         final Type innerFluxType = mock(Type.class);
         final ParameterizedType fluxType = mock(ParameterizedType.class);
         final Model expectedModel = mock(Model.class);
@@ -79,11 +78,22 @@ class GenericArrayModelResolverTest {
         });
         when(modelConverter.resolve(any(), any(), any())).thenReturn(expectedModel);
 
+        final Iterator<ModelConverter> converterChain = Iterators.forArray(modelConverter);
         final Model actualModel = tested.resolve(fluxType, context, converterChain);
         assertThat(actualModel).isNotNull();
         assertThat(actualModel).isSameAs(expectedModel);
 
         verify(modelConverter).resolve(same(innerFluxType), same(context), same(converterChain));
         verifyNoMoreInteractions(modelConverter);
+    }
+
+    @Test
+    void should_resolve_null_property_if_no_more_converter() {
+        assertThat(tested.resolveProperty(mock(Type.class), context, ANNOTATIONS, Iterators.forArray())).isNull();
+    }
+
+    @Test
+    void should_resolve_null_model_if_no_more_converter() {
+        assertThat(tested.resolve(mock(Type.class), context, Iterators.forArray())).isNull();
     }
 }
