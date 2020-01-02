@@ -6,12 +6,12 @@ import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableMap;
 import fr.irun.openapi.swagger.converter.BaseModelConverter;
 import fr.irun.openapi.swagger.exceptions.RocketSwaggerException;
-import fr.irun.openapi.swagger.resolver.FluxModelResolver;
-import fr.irun.openapi.swagger.resolver.MonoModelResolver;
+import fr.irun.openapi.swagger.resolver.GenericArrayModelResolver;
+import fr.irun.openapi.swagger.resolver.GenericModelResolver;
 import fr.irun.openapi.swagger.resolver.RocketModelResolver;
 import fr.irun.openapi.swagger.resolver.StandardModelResolver;
 import fr.irun.openapi.swagger.utils.ModelConversionUtils;
-import fr.irun.openapi.swagger.utils.ModelEnum;
+import fr.irun.openapi.swagger.utils.ResolutionStrategy;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
 import io.swagger.models.Model;
@@ -32,7 +32,7 @@ import java.util.stream.Stream;
  */
 public class RocketModelConverter implements ModelConverter {
 
-    private final ImmutableMap<ModelEnum, RocketModelResolver> resolversMappedByType;
+    private final ImmutableMap<ResolutionStrategy, RocketModelResolver> resolversMappedByType;
 
     /**
      * Default constructor used by swagger-maven-plugin.
@@ -52,9 +52,9 @@ public class RocketModelConverter implements ModelConverter {
         this.resolversMappedByType = ImmutableMap.copyOf(
                 Stream.of(
                         new StandardModelResolver(baseConverter),
-                        new MonoModelResolver(baseConverter),
-                        new FluxModelResolver(baseConverter)
-                ).collect(Collectors.toMap(RocketModelResolver::getModelType, Functions.identity()))
+                        new GenericModelResolver(baseConverter),
+                        new GenericArrayModelResolver(baseConverter)
+                ).collect(Collectors.toMap(RocketModelResolver::getResolutionStrategy, Functions.identity()))
         );
     }
 
@@ -62,12 +62,12 @@ public class RocketModelConverter implements ModelConverter {
     RocketModelConverter(Collection<RocketModelResolver> consolidations) {
         this.resolversMappedByType = ImmutableMap.copyOf(
                 consolidations.stream()
-                        .collect(Collectors.toMap(RocketModelResolver::getModelType, Functions.identity()))
+                        .collect(Collectors.toMap(RocketModelResolver::getResolutionStrategy, Functions.identity()))
         );
     }
 
     @VisibleForTesting
-    ImmutableMap<ModelEnum, RocketModelResolver> getResolversMappedByType() {
+    ImmutableMap<ResolutionStrategy, RocketModelResolver> getResolversMappedByType() {
         return resolversMappedByType;
     }
 
@@ -84,7 +84,7 @@ public class RocketModelConverter implements ModelConverter {
 
     @Nonnull
     private RocketModelResolver getResolverForType(Type type) {
-        final ModelEnum modelType = ModelConversionUtils.computeModelType(type);
+        final ResolutionStrategy modelType = ModelConversionUtils.computeModelType(type);
         return Optional.ofNullable(resolversMappedByType.get(modelType))
                 .orElseThrow(() -> new RocketSwaggerException("Unable to find model resolver for model type: " + modelType));
     }

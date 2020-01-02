@@ -2,11 +2,11 @@ package fr.irun.openapi.swagger;
 
 
 import com.google.common.collect.Iterators;
-import fr.irun.openapi.swagger.resolver.FluxModelResolver;
-import fr.irun.openapi.swagger.resolver.MonoModelResolver;
+import fr.irun.openapi.swagger.resolver.GenericArrayModelResolver;
+import fr.irun.openapi.swagger.resolver.GenericModelResolver;
 import fr.irun.openapi.swagger.resolver.RocketModelResolver;
 import fr.irun.openapi.swagger.resolver.StandardModelResolver;
-import fr.irun.openapi.swagger.utils.ModelEnum;
+import fr.irun.openapi.swagger.utils.ResolutionStrategy;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
 import io.swagger.models.Model;
@@ -52,37 +52,37 @@ class RocketModelConverterTest {
         context = mock(ModelConverterContext.class);
 
         // types
-        when(fluxModelResolver.getModelType()).thenReturn(ModelEnum.FLUX);
-        when(monoModelResolver.getModelType()).thenReturn(ModelEnum.MONO);
-        when(standardModelResolver.getModelType()).thenReturn(ModelEnum.STANDARD);
+        when(fluxModelResolver.getResolutionStrategy()).thenReturn(ResolutionStrategy.WRAP_GENERIC_ARRAY);
+        when(monoModelResolver.getResolutionStrategy()).thenReturn(ResolutionStrategy.WRAP_GENERIC);
+        when(standardModelResolver.getResolutionStrategy()).thenReturn(ResolutionStrategy.DEFAULT);
 
         tested = new RocketModelConverter(
                 Arrays.asList(fluxModelResolver, monoModelResolver, standardModelResolver));
 
         // Verify the constructor
-        verify(fluxModelResolver).getModelType();
-        verify(monoModelResolver).getModelType();
-        verify(standardModelResolver).getModelType();
+        verify(fluxModelResolver).getResolutionStrategy();
+        verify(monoModelResolver).getResolutionStrategy();
+        verify(standardModelResolver).getResolutionStrategy();
     }
 
     @Test
     void defaultConstructor() {
         final RocketModelConverter actualConverter = new RocketModelConverter();
 
-        final Map<ModelEnum, RocketModelResolver> actualResolverMap = actualConverter.getResolversMappedByType();
+        final Map<ResolutionStrategy, RocketModelResolver> actualResolverMap = actualConverter.getResolversMappedByType();
         assertThat(actualResolverMap).isNotNull();
         assertThat(actualResolverMap).hasSize(3);
 
         assertThat(actualResolverMap.values().stream().map(RocketModelResolver::getClass).map(Class::getName))
                 .contains(
                         StandardModelResolver.class.getName(),
-                        MonoModelResolver.class.getName(),
-                        FluxModelResolver.class.getName()
+                        GenericModelResolver.class.getName(),
+                        GenericArrayModelResolver.class.getName()
                 );
-        assertThat(actualResolverMap.keySet()).contains(ModelEnum.STANDARD, ModelEnum.FLUX, ModelEnum.MONO);
+        assertThat(actualResolverMap.keySet()).contains(ResolutionStrategy.DEFAULT, ResolutionStrategy.WRAP_GENERIC_ARRAY, ResolutionStrategy.WRAP_GENERIC);
 
         assertThat(actualResolverMap.entrySet().stream())
-                .allMatch(e -> e.getKey().equals(e.getValue().getModelType()));
+                .allMatch(e -> e.getKey().equals(e.getValue().getResolutionStrategy()));
     }
 
     @Test

@@ -92,8 +92,8 @@ public final class ModelConversionUtils {
      * @param inputType the type of the input model.
      * @return the type of model to consider.
      */
-    public static ModelEnum computeModelType(Type inputType) {
-        return ModelEnum.fromClassName(getClassName(inputType));
+    public static ResolutionStrategy computeModelType(Type inputType) {
+        return ResolutionStrategy.fromClassName(getClassName(inputType));
     }
 
     /**

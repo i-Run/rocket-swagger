@@ -1,5 +1,6 @@
 package fr.irun.openapi.swagger.resolver;
 
+import fr.irun.openapi.swagger.utils.ModelConversionUtils;
 import fr.irun.openapi.swagger.utils.ResolutionStrategy;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
@@ -11,33 +12,37 @@ import java.lang.reflect.Type;
 import java.util.Iterator;
 
 /**
- * Default Model resolver.
+ * Customized Model resolver for a type wrapping another (e.g. Mono or ResponseEntity).
  */
-public class StandardModelResolver implements RocketModelResolver {
+public class GenericModelResolver implements RocketModelResolver {
 
     private final ModelConverter modelConverter;
 
     /**
      * Constructor.
      *
-     * @param modelConverter The base used Model converter.
+     * @param modelConverter Base model converter used.
      */
-    public StandardModelResolver(ModelConverter modelConverter) {
+    public GenericModelResolver(ModelConverter modelConverter) {
         this.modelConverter = modelConverter;
     }
 
+
     @Override
     public ResolutionStrategy getResolutionStrategy() {
-        return ResolutionStrategy.DEFAULT;
+        return ResolutionStrategy.WRAP_GENERIC;
     }
 
     @Override
     public Property resolveProperty(Type type, ModelConverterContext context, Annotation[] annotations, Iterator<ModelConverter> iterator) {
-        return modelConverter.resolveProperty(type, context, annotations, iterator);
+        // Property of type MyWrapper<T> converted to T
+        final Type innerMonoType = ModelConversionUtils.extractGenericFirstInnerType(type);
+        return modelConverter.resolveProperty(innerMonoType, context, annotations, iterator);
     }
 
     @Override
     public Model resolve(Type type, ModelConverterContext modelConverterContext, Iterator<ModelConverter> iterator) {
-        return modelConverter.resolve(type, modelConverterContext, iterator);
+        final Type innerMonoType = ModelConversionUtils.extractGenericFirstInnerType(type);
+        return modelConverter.resolve(innerMonoType, modelConverterContext, iterator);
     }
 }

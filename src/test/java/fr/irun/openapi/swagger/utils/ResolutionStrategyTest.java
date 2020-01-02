@@ -10,22 +10,22 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ModelEnumTest {
+class ResolutionStrategyTest {
 
 
     private static Stream<Arguments> fromClassNameParams() {
         return Stream.of(
-                Arguments.of(Mono.class.getName(), ModelEnum.MONO),
-                Arguments.of(Flux.class.getName(), ModelEnum.FLUX),
-                Arguments.of("DummyClass", ModelEnum.STANDARD),
-                Arguments.of(null, ModelEnum.STANDARD)
+                Arguments.of(Mono.class.getName(), ResolutionStrategy.WRAP_GENERIC),
+                Arguments.of(Flux.class.getName(), ResolutionStrategy.WRAP_GENERIC_ARRAY),
+                Arguments.of("DummyClass", ResolutionStrategy.DEFAULT),
+                Arguments.of(null, ResolutionStrategy.DEFAULT)
         );
     }
 
     @ParameterizedTest
     @MethodSource("fromClassNameParams")
-    void fromClassName(String className, ModelEnum expectedType) {
-        final ModelEnum actual = ModelEnum.fromClassName(className);
+    void fromClassName(String className, ResolutionStrategy expectedType) {
+        final ResolutionStrategy actual = ResolutionStrategy.fromClassName(className);
         assertThat(actual).isNotNull();
         assertThat(actual).isEqualTo(expectedType);
     }

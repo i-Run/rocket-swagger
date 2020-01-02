@@ -1,9 +1,10 @@
 package fr.irun.openapi.swagger.resolver;
 
-import fr.irun.openapi.swagger.utils.ModelEnum;
+import fr.irun.openapi.swagger.utils.ResolutionStrategy;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
 import io.swagger.models.Model;
+import io.swagger.models.properties.ArrayProperty;
 import io.swagger.models.properties.Property;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,7 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-class MonoModelResolverTest {
+class GenericArrayModelResolverTest {
 
     private static final Annotation[] ANNOTATIONS = new Annotation[0];
 
@@ -29,7 +30,7 @@ class MonoModelResolverTest {
     private ModelConverterContext context;
     private Iterator<ModelConverter> converterChain;
 
-    private MonoModelResolver tested;
+    private GenericArrayModelResolver tested;
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -38,49 +39,51 @@ class MonoModelResolverTest {
         context = mock(ModelConverterContext.class);
         converterChain = mock(Iterator.class);
 
-        tested = new MonoModelResolver(modelConverter);
+        tested = new GenericArrayModelResolver(modelConverter);
     }
 
     @Test
     void getModelType() {
-        assertThat(tested.getModelType()).isEqualTo(ModelEnum.MONO);
+        assertThat(tested.getResolutionStrategy()).isEqualTo(ResolutionStrategy.WRAP_GENERIC_ARRAY);
     }
 
     @Test
     void resolveProperty() {
-        final Type innerMonoType = mock(Type.class);
-        final ParameterizedType monoType = mock(ParameterizedType.class);
+        final Type innerFluxType = mock(Type.class);
+        final ParameterizedType fluxType = mock(ParameterizedType.class);
         final Property expectedProperty = mock(Property.class);
 
-        when(monoType.getActualTypeArguments()).thenReturn(new Type[]{
-                innerMonoType
+        when(fluxType.getActualTypeArguments()).thenReturn(new Type[]{
+                innerFluxType
         });
         when(modelConverter.resolveProperty(any(), any(), any(), any())).thenReturn(expectedProperty);
 
-        final Property actualProperty = tested.resolveProperty(monoType, context, ANNOTATIONS, converterChain);
+        final Property actualProperty = tested.resolveProperty(fluxType, context, ANNOTATIONS, converterChain);
         assertThat(actualProperty).isNotNull();
-        assertThat(actualProperty).isSameAs(expectedProperty);
+        assertThat(actualProperty).isInstanceOf(ArrayProperty.class);
+        ArrayProperty actualArrayProperty = (ArrayProperty) actualProperty;
+        assertThat(actualArrayProperty.getItems()).isSameAs(expectedProperty);
 
-        verify(modelConverter).resolveProperty(same(innerMonoType), same(context), same(ANNOTATIONS), same(converterChain));
+        verify(modelConverter).resolveProperty(same(innerFluxType), same(context), same(ANNOTATIONS), same(converterChain));
         verifyNoMoreInteractions(modelConverter);
     }
 
     @Test
     void resolve() {
-        final Type innerMonoType = mock(Type.class);
-        final ParameterizedType monoType = mock(ParameterizedType.class);
+        final Type innerFluxType = mock(Type.class);
+        final ParameterizedType fluxType = mock(ParameterizedType.class);
         final Model expectedModel = mock(Model.class);
 
-        when(monoType.getActualTypeArguments()).thenReturn(new Type[]{
-                innerMonoType
+        when(fluxType.getActualTypeArguments()).thenReturn(new Type[]{
+                innerFluxType
         });
         when(modelConverter.resolve(any(), any(), any())).thenReturn(expectedModel);
 
-        final Model actualModel = tested.resolve(monoType, context, converterChain);
+        final Model actualModel = tested.resolve(fluxType, context, converterChain);
         assertThat(actualModel).isNotNull();
         assertThat(actualModel).isSameAs(expectedModel);
 
-        verify(modelConverter).resolve(same(innerMonoType), same(context), same(converterChain));
+        verify(modelConverter).resolve(same(innerFluxType), same(context), same(converterChain));
         verifyNoMoreInteractions(modelConverter);
     }
 }

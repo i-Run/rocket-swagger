@@ -1,7 +1,7 @@
 package fr.irun.openapi.swagger.resolver;
 
 import fr.irun.openapi.swagger.utils.ModelConversionUtils;
-import fr.irun.openapi.swagger.utils.ModelEnum;
+import fr.irun.openapi.swagger.utils.ResolutionStrategy;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
 import io.swagger.models.Model;
@@ -13,9 +13,9 @@ import java.lang.reflect.Type;
 import java.util.Iterator;
 
 /**
- * Customized ModelResolver for Flux.
+ * Customized ModelResolver for a type wrapping a generic array (e.g. Flux).
  */
-public class FluxModelResolver implements RocketModelResolver {
+public class GenericArrayModelResolver implements RocketModelResolver {
 
     private final ModelConverter modelConverter;
 
@@ -24,13 +24,13 @@ public class FluxModelResolver implements RocketModelResolver {
      *
      * @param modelConverter the base model converter.
      */
-    public FluxModelResolver(ModelConverter modelConverter) {
+    public GenericArrayModelResolver(ModelConverter modelConverter) {
         this.modelConverter = modelConverter;
     }
 
     @Override
-    public ModelEnum getModelType() {
-        return ModelEnum.FLUX;
+    public ResolutionStrategy getResolutionStrategy() {
+        return ResolutionStrategy.WRAP_GENERIC_ARRAY;
     }
 
 
@@ -40,7 +40,7 @@ public class FluxModelResolver implements RocketModelResolver {
                                     Annotation[] annotations,
                                     Iterator<ModelConverter> iterator) {
 
-        // Property of type Flux<T> converted to T[]
+        // Property of type MyWrapper<T> converted to T[]
         final Type innerFluxType = ModelConversionUtils.extractGenericFirstInnerType(fluxType);
         final Property baseProperty = modelConverter.resolveProperty(innerFluxType, modelConverterContext, annotations, iterator);
         return new ArrayProperty(baseProperty);

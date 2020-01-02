@@ -1,6 +1,6 @@
 package fr.irun.openapi.swagger.resolver;
 
-import fr.irun.openapi.swagger.utils.ModelEnum;
+import fr.irun.openapi.swagger.utils.ResolutionStrategy;
 import io.swagger.converter.ModelConverter;
 
 /**
@@ -9,10 +9,10 @@ import io.swagger.converter.ModelConverter;
 public interface RocketModelResolver extends ModelConverter {
 
     /**
-     * Obtain the model type related to this resolver.
+     * Obtain the strategy related to this resolver.
      *
-     * @return the model type related to the resolver.
+     * @return the strategy related to the resolver.
      */
-    ModelEnum getModelType();
+    ResolutionStrategy getResolutionStrategy();
 
 }

@@ -1,7 +1,7 @@
 package fr.irun.openapi.swagger.resolver;
 
 import com.google.common.collect.Iterators;
-import fr.irun.openapi.swagger.utils.ModelEnum;
+import fr.irun.openapi.swagger.utils.ResolutionStrategy;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
 import io.swagger.models.Model;
@@ -40,7 +40,7 @@ class StandardModelResolverTest {
 
     @Test
     void getModelType() {
-        assertThat(tested.getModelType()).isEqualTo(ModelEnum.STANDARD);
+        assertThat(tested.getResolutionStrategy()).isEqualTo(ResolutionStrategy.DEFAULT);
     }
 
     @Test

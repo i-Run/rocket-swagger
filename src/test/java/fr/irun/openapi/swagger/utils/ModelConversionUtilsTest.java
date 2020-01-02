@@ -53,17 +53,20 @@ class ModelConversionUtilsTest {
 
     private static Stream<Arguments> computeModelTypeParams() {
         return Stream.of(
-                Arguments.of(Mono.class, ModelEnum.MONO),
-                Arguments.of(Flux.class, ModelEnum.FLUX),
-                Arguments.of(String.class, ModelEnum.STANDARD),
-                Arguments.of(Instant.class, ModelEnum.STANDARD)
+                Arguments.of(Mono.class, ResolutionStrategy.WRAP_GENERIC),
+                Arguments.of(Flux.class, ResolutionStrategy.WRAP_GENERIC_ARRAY),
+                Arguments.of(String.class, ResolutionStrategy.DEFAULT),
+                Arguments.of(Instant.class, ResolutionStrategy.DATE_TIME),
+                Arguments.of(LocalDateTime.class, ResolutionStrategy.DATE_TIME),
+                Arguments.of(java.util.Date.class, ResolutionStrategy.DATE_TIME),
+                Arguments.of(java.sql.Date.class, ResolutionStrategy.DATE_TIME)
         );
     }
 
 
     @ParameterizedTest
     @MethodSource("computeModelTypeParams")
-    void computeModelType(Class<?> inputClass, ModelEnum expectedResult) {
+    void computeModelType(Class<?> inputClass, ResolutionStrategy expectedResult) {
         final Type inputType = mockType(inputClass);
         assertThat(ModelConversionUtils.computeModelType(inputType)).isEqualTo(expectedResult);
     }
