@@ -37,7 +37,7 @@ public class RocketModelConverter implements ModelConverter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RocketModelConverter.class);
 
-    private final ImmutableMap<ResolutionStrategy, RocketModelResolver> resolversMappedByType;
+    private final ImmutableMap<ResolutionStrategy, RocketModelResolver> resolversByStrategy;
 
     /**
      * Default constructor used by swagger-maven-plugin.
@@ -54,7 +54,7 @@ public class RocketModelConverter implements ModelConverter {
     public RocketModelConverter(ObjectMapper objectMapper) {
         registerJacksonConverters(objectMapper);
 
-        this.resolversMappedByType = ImmutableMap.copyOf(
+        this.resolversByStrategy = ImmutableMap.copyOf(
                 Stream.of(
                         new DefaultModelResolver(),
                         new DateTimeModelResolver(),
@@ -66,12 +66,12 @@ public class RocketModelConverter implements ModelConverter {
 
     @VisibleForTesting
     RocketModelConverter(ImmutableMap<ResolutionStrategy, RocketModelResolver> resolvers) {
-        this.resolversMappedByType = resolvers;
+        this.resolversByStrategy = resolvers;
     }
 
     @VisibleForTesting
-    ImmutableMap<ResolutionStrategy, RocketModelResolver> getResolversMappedByType() {
-        return resolversMappedByType;
+    ImmutableMap<ResolutionStrategy, RocketModelResolver> getResolversByStrategy() {
+        return resolversByStrategy;
     }
 
     @Override
@@ -88,9 +88,9 @@ public class RocketModelConverter implements ModelConverter {
     @Nonnull
     private RocketModelResolver getResolverForType(Type type) {
         final ResolutionStrategy resolutionStrategy = ModelConversionUtils.getResolutionStrategy(type);
-        final RocketModelResolver resolver = Optional.ofNullable(resolversMappedByType.get(resolutionStrategy))
+        final RocketModelResolver resolver = Optional.ofNullable(resolversByStrategy.get(resolutionStrategy))
                 .orElseThrow(() -> new RocketSwaggerException("Unable to find model resolver for model type: " + resolutionStrategy));
-        LOGGER.trace("Resolve type '{}' with strategy '{}' and {}", type, resolutionStrategy, resolver.getClass());
+        LOGGER.trace("Resolve type '{}' with strategy '{}' and converter {}", type, resolutionStrategy, resolver.getClass());
         return resolver;
     }
 

@@ -63,7 +63,7 @@ class RocketModelConverterTest {
     void should_create_default_resolver() {
         final RocketModelConverter actualConverter = new RocketModelConverter();
 
-        final Map<ResolutionStrategy, RocketModelResolver> actualResolverMap = actualConverter.getResolversMappedByType();
+        final Map<ResolutionStrategy, RocketModelResolver> actualResolverMap = actualConverter.getResolversByStrategy();
         assertThat(actualResolverMap).isNotNull();
         assertThat(actualResolverMap).hasSize(4);
 

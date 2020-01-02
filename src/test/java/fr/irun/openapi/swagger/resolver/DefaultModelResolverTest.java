@@ -80,7 +80,7 @@ class DefaultModelResolverTest {
     }
 
     @Test
-    void should_resolve_model_if_no_more_converter() {
+    void should_resolve_null_model_if_no_more_converter() {
         assertThat(tested.resolve(mock(Type.class), contextMock, Iterators.forArray())).isNull();
     }
 }
