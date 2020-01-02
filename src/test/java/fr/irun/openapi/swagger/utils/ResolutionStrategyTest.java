@@ -1,5 +1,6 @@
 package fr.irun.openapi.swagger.utils;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -24,6 +25,7 @@ class ResolutionStrategyTest {
                 Arguments.of(LocalDateTime.class.getName(), ResolutionStrategy.DATE_TIME),
                 Arguments.of(java.util.Date.class.getName(), ResolutionStrategy.DATE_TIME),
                 Arguments.of(java.sql.Date.class.getName(), ResolutionStrategy.DATE_TIME),
+                Arguments.of(JsonNode.class.getName(), ResolutionStrategy.MAP),
                 Arguments.of("DummyClass", ResolutionStrategy.DEFAULT),
                 Arguments.of(null, ResolutionStrategy.DEFAULT)
         );

@@ -35,6 +35,13 @@ public enum ResolutionStrategy {
     ),
 
     /**
+     * Strategy for a Map type.
+     */
+    MAP(
+            "com.fasterxml.jackson.databind.JsonNode"
+    ),
+
+    /**
      * Default strategy.
      */
     DEFAULT("");

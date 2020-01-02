@@ -9,6 +9,7 @@ import fr.irun.openapi.swagger.resolver.DateTimeModelResolver;
 import fr.irun.openapi.swagger.resolver.DefaultModelResolver;
 import fr.irun.openapi.swagger.resolver.GenericArrayModelResolver;
 import fr.irun.openapi.swagger.resolver.GenericModelResolver;
+import fr.irun.openapi.swagger.resolver.MapModelResolver;
 import fr.irun.openapi.swagger.resolver.RocketModelResolver;
 import fr.irun.openapi.swagger.utils.ModelConversionUtils;
 import fr.irun.openapi.swagger.utils.ResolutionStrategy;
@@ -58,6 +59,7 @@ public class RocketModelConverter implements ModelConverter {
                 Stream.of(
                         new DefaultModelResolver(),
                         new DateTimeModelResolver(),
+                        new MapModelResolver(),
                         new GenericModelResolver(this),
                         new GenericArrayModelResolver(this)
                 ).collect(Collectors.toMap(RocketModelResolver::getResolutionStrategy, Functions.identity()))
