@@ -80,8 +80,8 @@ class RocketModelConverterTest {
                 Arguments.of(ResolutionStrategy.DATE_TIME, java.util.Date.class.getName()),
                 Arguments.of(ResolutionStrategy.DATE_TIME, java.sql.Date.class.getName()),
                 Arguments.of(ResolutionStrategy.WRAP_GENERIC, Mono.class.getName()),
+                Arguments.of(ResolutionStrategy.WRAP_GENERIC, "org.springframework.http.ResponseEntity<java.lang.Integer>"),
                 Arguments.of(ResolutionStrategy.WRAP_GENERIC_ARRAY, Flux.class.getName()),
-                Arguments.of(ResolutionStrategy.DEFAULT, "org.springframework.http.ResponseEntity<java.lang.Integer>"),
                 Arguments.of(ResolutionStrategy.DEFAULT, String.class.getName())
         );
     }

@@ -12,9 +12,12 @@ import java.util.Arrays;
 public enum ResolutionStrategy {
 
     /**
-     * Strategy for a generic wrapper (e.g. Mono or ResponseEntity).
+     * Strategy for a generic wrapper (e.g. Mono).
      */
-    WRAP_GENERIC("reactor.core.publisher.Mono"),
+    WRAP_GENERIC(
+            "reactor.core.publisher.Mono",
+            "org.springframework.http.ResponseEntity"
+    ),
 
     /**
      * Strategy for a generic array wrapper (e.g. Flux).

@@ -6,8 +6,6 @@ import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
 import io.swagger.models.Model;
 import io.swagger.models.properties.Property;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
@@ -18,8 +16,6 @@ import java.util.Iterator;
  */
 public class GenericModelResolver implements RocketModelResolver {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(GenericModelResolver.class);
-
     @Override
     public ResolutionStrategy getResolutionStrategy() {
         return ResolutionStrategy.WRAP_GENERIC;
@@ -28,22 +24,22 @@ public class GenericModelResolver implements RocketModelResolver {
     @Override
     public Property resolveProperty(Type type, ModelConverterContext context, Annotation[] annotations, Iterator<ModelConverter> iterator) {
         if (iterator.hasNext()) {
-            // Property of type MyWrapper<T> converted to T
-            final Type innerMonoType = ModelConversionUtils.extractGenericFirstInnerType(type);
             final ModelConverter converter = iterator.next();
-            LOGGER.trace("Strategy {}: resolve property type {} with {}", getResolutionStrategy(), innerMonoType, converter.getClass());
-            return converter.resolveProperty(innerMonoType, context, annotations, iterator);
+            // Property of type MyWrapper<T> converted to T
+            return ModelConversionUtils.extractGenericFirstInnerType(type)
+                    .map(t -> converter.resolveProperty(t, context, annotations, iterator))
+                    .orElse(null);
         }
         return null;
     }
 
     @Override
-    public Model resolve(Type type, ModelConverterContext modelConverterContext, Iterator<ModelConverter> iterator) {
+    public Model resolve(Type type, ModelConverterContext context, Iterator<ModelConverter> iterator) {
         if (iterator.hasNext()) {
-            final Type innerMonoType = ModelConversionUtils.extractGenericFirstInnerType(type);
             final ModelConverter converter = iterator.next();
-            LOGGER.trace("Strategy {}: resolve model type {} with {}", getResolutionStrategy(), innerMonoType, converter.getClass());
-            return converter.resolve(innerMonoType, modelConverterContext, iterator);
+            return ModelConversionUtils.extractGenericFirstInnerType(type)
+                    .map(t -> converter.resolve(t, context, iterator))
+                    .orElse(null);
         }
         return null;
     }

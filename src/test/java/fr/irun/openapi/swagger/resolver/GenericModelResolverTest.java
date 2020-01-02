@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 class GenericModelResolverTest {
@@ -46,12 +47,12 @@ class GenericModelResolverTest {
 
     @Test
     void should_resolve_property() {
-        final Type innerMonoType = mock(Type.class);
+        final Type innerType = mock(Type.class);
         final ParameterizedType monoType = mock(ParameterizedType.class);
         final Property expectedProperty = mock(Property.class);
 
         when(monoType.getActualTypeArguments()).thenReturn(new Type[]{
-                innerMonoType
+                innerType
         });
         when(modelConverterMock.resolveProperty(any(), any(), any(), any())).thenReturn(expectedProperty);
 
@@ -60,18 +61,18 @@ class GenericModelResolverTest {
         assertThat(actualProperty).isNotNull();
         assertThat(actualProperty).isSameAs(expectedProperty);
 
-        verify(modelConverterMock).resolveProperty(same(innerMonoType), same(contextMock), same(ANNOTATIONS), same(converterChain));
+        verify(modelConverterMock).resolveProperty(same(innerType), same(contextMock), same(ANNOTATIONS), same(converterChain));
         verifyNoMoreInteractions(modelConverterMock);
     }
 
     @Test
     void should_resolve_model() {
-        final Type innerMonoType = mock(Type.class);
+        final Type innerType = mock(Type.class);
         final ParameterizedType monoType = mock(ParameterizedType.class);
         final Model expectedModel = mock(Model.class);
 
         when(monoType.getActualTypeArguments()).thenReturn(new Type[]{
-                innerMonoType
+                innerType
         });
         when(modelConverterMock.resolve(any(), any(), any())).thenReturn(expectedModel);
 
@@ -80,7 +81,7 @@ class GenericModelResolverTest {
         assertThat(actualModel).isNotNull();
         assertThat(actualModel).isSameAs(expectedModel);
 
-        verify(modelConverterMock).resolve(same(innerMonoType), same(contextMock), same(converterChain));
+        verify(modelConverterMock).resolve(same(innerType), same(contextMock), same(converterChain));
         verifyNoMoreInteractions(modelConverterMock);
     }
 
@@ -90,7 +91,20 @@ class GenericModelResolverTest {
     }
 
     @Test
-    void should_resolve_null_model_if_no_more_converter() {
-        assertThat(tested.resolve(mock(Type.class), contextMock, Iterators.forArray())).isNull();
+    void should_resolve_null_property_if_no_inner_type() {
+        final Type typeMock = mock(Type.class);
+        when(typeMock.getTypeName()).thenReturn("org.springframework.http.ResponseEntity");
+
+        assertThat(tested.resolveProperty(typeMock, contextMock, ANNOTATIONS, Iterators.forArray(modelConverterMock))).isNull();
+        verifyZeroInteractions(modelConverterMock);
+    }
+
+    @Test
+    void should_resolve_null_model_if_no_inner_type() {
+        final Type typeMock = mock(Type.class);
+        when(typeMock.getTypeName()).thenReturn("org.springframework.http.ResponseEntity");
+
+        assertThat(tested.resolve(typeMock, contextMock, Iterators.forArray(modelConverterMock))).isNull();
+        verifyZeroInteractions(modelConverterMock);
     }
 }

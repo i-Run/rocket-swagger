@@ -48,8 +48,7 @@ public class RocketModelConverter implements ModelConverter {
      * @param objectMapper Mapper from Jackson configuration.
      */
     public RocketModelConverter(ObjectMapper objectMapper) {
-        // Required to use the expected object mapper for the conversion
-        ModelConverters.getInstance().addConverter(new ModelResolver(objectMapper));
+        registerJacksonConverters(objectMapper);
 
         this.resolversMappedByType = ImmutableMap.copyOf(
                 Stream.of(
@@ -87,6 +86,11 @@ public class RocketModelConverter implements ModelConverter {
         final ResolutionStrategy modelType = ModelConversionUtils.computeModelType(type);
         return Optional.ofNullable(resolversMappedByType.get(modelType))
                 .orElseThrow(() -> new RocketSwaggerException("Unable to find model resolver for model type: " + modelType));
+    }
+
+    private static void registerJacksonConverters(ObjectMapper objectMapper) {
+        // Required to use the expected object mapper for the conversion
+        ModelConverters.getInstance().addConverter(new ModelResolver(objectMapper));
     }
 
 }

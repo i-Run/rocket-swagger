@@ -21,21 +21,22 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 class GenericArrayModelResolverTest {
 
     private static final Annotation[] ANNOTATIONS = new Annotation[0];
 
-    private ModelConverter modelConverter;
-    private ModelConverterContext context;
+    private ModelConverter modelConverterMock;
+    private ModelConverterContext contextMock;
 
     private GenericArrayModelResolver tested;
 
     @BeforeEach
     void setUp() {
-        modelConverter = mock(ModelConverter.class);
-        context = mock(ModelConverterContext.class);
+        modelConverterMock = mock(ModelConverter.class);
+        contextMock = mock(ModelConverterContext.class);
 
         tested = new GenericArrayModelResolver();
     }
@@ -47,53 +48,71 @@ class GenericArrayModelResolverTest {
 
     @Test
     void should_resolve_property() {
-        final Type innerFluxType = mock(Type.class);
+        final Type innerType = mock(Type.class);
         final ParameterizedType fluxType = mock(ParameterizedType.class);
         final Property expectedProperty = mock(Property.class);
 
         when(fluxType.getActualTypeArguments()).thenReturn(new Type[]{
-                innerFluxType
+                innerType
         });
-        when(modelConverter.resolveProperty(any(), any(), any(), any())).thenReturn(expectedProperty);
+        when(modelConverterMock.resolveProperty(any(), any(), any(), any())).thenReturn(expectedProperty);
 
-        final Iterator<ModelConverter> converterChain = Iterators.forArray(modelConverter);
-        final Property actualProperty = tested.resolveProperty(fluxType, context, ANNOTATIONS, converterChain);
+        final Iterator<ModelConverter> converterChain = Iterators.forArray(modelConverterMock);
+        final Property actualProperty = tested.resolveProperty(fluxType, contextMock, ANNOTATIONS, converterChain);
         assertThat(actualProperty).isNotNull();
         assertThat(actualProperty).isInstanceOf(ArrayProperty.class);
         ArrayProperty actualArrayProperty = (ArrayProperty) actualProperty;
         assertThat(actualArrayProperty.getItems()).isSameAs(expectedProperty);
 
-        verify(modelConverter).resolveProperty(same(innerFluxType), same(context), same(ANNOTATIONS), same(converterChain));
-        verifyNoMoreInteractions(modelConverter);
+        verify(modelConverterMock).resolveProperty(same(innerType), same(contextMock), same(ANNOTATIONS), same(converterChain));
+        verifyNoMoreInteractions(modelConverterMock);
     }
 
     @Test
     void should_resolve_model() {
-        final Type innerFluxType = mock(Type.class);
+        final Type innerType = mock(Type.class);
         final ParameterizedType fluxType = mock(ParameterizedType.class);
         final Model expectedModel = mock(Model.class);
 
         when(fluxType.getActualTypeArguments()).thenReturn(new Type[]{
-                innerFluxType
+                innerType
         });
-        when(modelConverter.resolve(any(), any(), any())).thenReturn(expectedModel);
+        when(modelConverterMock.resolve(any(), any(), any())).thenReturn(expectedModel);
 
-        final Iterator<ModelConverter> converterChain = Iterators.forArray(modelConverter);
-        final Model actualModel = tested.resolve(fluxType, context, converterChain);
+        final Iterator<ModelConverter> converterChain = Iterators.forArray(modelConverterMock);
+        final Model actualModel = tested.resolve(fluxType, contextMock, converterChain);
         assertThat(actualModel).isNotNull();
         assertThat(actualModel).isSameAs(expectedModel);
 
-        verify(modelConverter).resolve(same(innerFluxType), same(context), same(converterChain));
-        verifyNoMoreInteractions(modelConverter);
+        verify(modelConverterMock).resolve(same(innerType), same(contextMock), same(converterChain));
+        verifyNoMoreInteractions(modelConverterMock);
     }
 
     @Test
     void should_resolve_null_property_if_no_more_converter() {
-        assertThat(tested.resolveProperty(mock(Type.class), context, ANNOTATIONS, Iterators.forArray())).isNull();
+        assertThat(tested.resolveProperty(mock(Type.class), contextMock, ANNOTATIONS, Iterators.forArray())).isNull();
     }
 
     @Test
     void should_resolve_null_model_if_no_more_converter() {
-        assertThat(tested.resolve(mock(Type.class), context, Iterators.forArray())).isNull();
+        assertThat(tested.resolve(mock(Type.class), contextMock, Iterators.forArray())).isNull();
+    }
+
+    @Test
+    void should_resolve_null_property_if_no_inner_type() {
+        final Type typeMock = mock(Type.class);
+        when(typeMock.getTypeName()).thenReturn("org.springframework.http.ResponseEntity");
+
+        assertThat(tested.resolveProperty(typeMock, contextMock, ANNOTATIONS, Iterators.forArray(modelConverterMock))).isNull();
+        verifyZeroInteractions(modelConverterMock);
+    }
+
+    @Test
+    void should_resolve_null_model_if_no_inner_type() {
+        final Type typeMock = mock(Type.class);
+        when(typeMock.getTypeName()).thenReturn("org.springframework.http.ResponseEntity");
+
+        assertThat(tested.resolve(typeMock, contextMock, Iterators.forArray(modelConverterMock))).isNull();
+        verifyZeroInteractions(modelConverterMock);
     }
 }
