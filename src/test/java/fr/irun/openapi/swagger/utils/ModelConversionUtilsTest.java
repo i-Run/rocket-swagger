@@ -14,7 +14,6 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
@@ -23,18 +22,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ModelConversionUtilsTest {
-
-
-    @Test
-    void isDateTime() {
-        assertThat(ModelConversionUtils.isDateType(Instant.class)).isTrue();
-        assertThat(ModelConversionUtils.isDateType(LocalDateTime.class)).isTrue();
-        assertThat(ModelConversionUtils.isDateType(Date.class)).isTrue();
-        assertThat(ModelConversionUtils.isDateType(java.sql.Date.class)).isTrue();
-
-        assertThat(ModelConversionUtils.isDateType(String.class)).isFalse();
-        assertThat(ModelConversionUtils.isDateType(null)).isFalse();
-    }
 
     @Test
     void isResponseEntityType() {

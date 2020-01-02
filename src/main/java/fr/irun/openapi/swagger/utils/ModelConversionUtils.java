@@ -6,9 +6,6 @@ import com.fasterxml.jackson.databind.type.TypeBindings;
 import javax.annotation.Nullable;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -30,28 +27,7 @@ public final class ModelConversionUtils {
 
     private static final String RESPONSE_ENTITY_CLASS_NAME = "org.springframework.http.ResponseEntity";
 
-    /**
-     * Array of all the classes considered as DateTime for the conversion into Property.
-     */
-    private static final Class<?>[] DATE_CLASSES = {
-            Instant.class, LocalDateTime.class, java.util.Date.class, java.sql.Date.class,
-    };
-
     private ModelConversionUtils() {
-    }
-
-
-    /**
-     * Verify a type of property corresponds to a Date.
-     *
-     * @param propertyType the type of property.
-     * @return true if the type of the property corresponds to a date (Instant or LocalDateTime)
-     */
-    public static boolean isDateType(@Nullable Type propertyType) {
-        // SimpleType.getTypeName() returns: "[Simple class, java.time.Instant]"
-        // -> use a regex in order to extract the real class name.
-        String className = getClassName(propertyType);
-        return Arrays.stream(DATE_CLASSES).anyMatch(dateClass -> dateClass.getTypeName().equals(className));
     }
 
     /**

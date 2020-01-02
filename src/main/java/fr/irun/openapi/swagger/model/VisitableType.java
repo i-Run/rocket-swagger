@@ -14,11 +14,9 @@ public interface VisitableType {
      */
     interface Visitor<T> {
 
-        T visitDateType(Type dateType);
-
         T visitResponseEntityType(Type responseEntityType);
 
-        T visitAnyOtherType(Type baseType);
+        T visitDefaultType(Type baseType);
     }
 
     /**

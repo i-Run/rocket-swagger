@@ -14,6 +14,6 @@ public final class AnyVisitableType implements VisitableType {
 
     @Override
     public <T> T visit(Visitor<T> visitor) {
-        return visitor.visitAnyOtherType(type);
+        return visitor.visitDefaultType(type);
     }
 }
