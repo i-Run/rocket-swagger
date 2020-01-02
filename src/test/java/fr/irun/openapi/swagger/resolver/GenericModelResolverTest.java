@@ -37,7 +37,7 @@ class GenericModelResolverTest {
         modelConverterMock = mock(ModelConverter.class);
         contextMock = mock(ModelConverterContext.class);
 
-        tested = new GenericModelResolver();
+        tested = new GenericModelResolver(modelConverterMock);
     }
 
     @Test
@@ -56,7 +56,7 @@ class GenericModelResolverTest {
         });
         when(modelConverterMock.resolveProperty(any(), any(), any(), any())).thenReturn(expectedProperty);
 
-        final Iterator<ModelConverter> converterChain = Iterators.forArray(modelConverterMock);
+        final Iterator<ModelConverter> converterChain = Iterators.forArray();
         final Property actualProperty = tested.resolveProperty(monoType, contextMock, ANNOTATIONS, converterChain);
         assertThat(actualProperty).isNotNull();
         assertThat(actualProperty).isSameAs(expectedProperty);
@@ -76,18 +76,13 @@ class GenericModelResolverTest {
         });
         when(modelConverterMock.resolve(any(), any(), any())).thenReturn(expectedModel);
 
-        final Iterator<ModelConverter> converterChain = Iterators.forArray(modelConverterMock);
+        final Iterator<ModelConverter> converterChain = Iterators.forArray();
         final Model actualModel = tested.resolve(monoType, contextMock, converterChain);
         assertThat(actualModel).isNotNull();
         assertThat(actualModel).isSameAs(expectedModel);
 
         verify(modelConverterMock).resolve(same(innerType), same(contextMock), same(converterChain));
         verifyNoMoreInteractions(modelConverterMock);
-    }
-
-    @Test
-    void should_resolve_null_property_if_no_more_converter() {
-        assertThat(tested.resolveProperty(mock(Type.class), contextMock, ANNOTATIONS, Iterators.forArray())).isNull();
     }
 
     @Test

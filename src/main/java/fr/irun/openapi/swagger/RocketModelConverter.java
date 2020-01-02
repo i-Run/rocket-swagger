@@ -19,6 +19,8 @@ import io.swagger.jackson.ModelResolver;
 import io.swagger.models.Model;
 import io.swagger.models.properties.Property;
 import io.swagger.util.Json;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.lang.annotation.Annotation;
@@ -32,6 +34,8 @@ import java.util.stream.Stream;
  * Base model converter for the Rocket modules.
  */
 public class RocketModelConverter implements ModelConverter {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RocketModelConverter.class);
 
     private final ImmutableMap<ResolutionStrategy, RocketModelResolver> resolversMappedByType;
 
@@ -54,8 +58,8 @@ public class RocketModelConverter implements ModelConverter {
                 Stream.of(
                         new DefaultModelResolver(),
                         new DateTimeModelResolver(),
-                        new GenericModelResolver(),
-                        new GenericArrayModelResolver()
+                        new GenericModelResolver(this),
+                        new GenericArrayModelResolver(this)
                 ).collect(Collectors.toMap(RocketModelResolver::getResolutionStrategy, Functions.identity()))
         );
     }
@@ -83,9 +87,11 @@ public class RocketModelConverter implements ModelConverter {
 
     @Nonnull
     private RocketModelResolver getResolverForType(Type type) {
-        final ResolutionStrategy modelType = ModelConversionUtils.computeModelType(type);
-        return Optional.ofNullable(resolversMappedByType.get(modelType))
-                .orElseThrow(() -> new RocketSwaggerException("Unable to find model resolver for model type: " + modelType));
+        final ResolutionStrategy resolutionStrategy = ModelConversionUtils.getResolutionStrategy(type);
+        final RocketModelResolver resolver = Optional.ofNullable(resolversMappedByType.get(resolutionStrategy))
+                .orElseThrow(() -> new RocketSwaggerException("Unable to find model resolver for model type: " + resolutionStrategy));
+        LOGGER.trace("Resolve type '{}' with strategy '{}' and {}", type, resolutionStrategy, resolver.getClass());
+        return resolver;
     }
 
     private static void registerJacksonConverters(ObjectMapper objectMapper) {

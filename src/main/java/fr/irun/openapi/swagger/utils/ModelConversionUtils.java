@@ -34,7 +34,6 @@ public final class ModelConversionUtils {
      * @return The full name of the related class.
      */
     static String getClassName(@Nullable Type type) {
-
         return Optional.ofNullable(type)
                 .map(Type::getTypeName)
                 .map(propertyTypeName -> {
@@ -48,12 +47,12 @@ public final class ModelConversionUtils {
 
 
     /**
-     * Compute the type of a model class.
+     * Compute the resolution strategy to use for a type.
      *
-     * @param inputType the type of the input model.
-     * @return the type of model to consider.
+     * @param inputType the type to get the strategy.
+     * @return the strategy related to the type.
      */
-    public static ResolutionStrategy computeModelType(Type inputType) {
+    public static ResolutionStrategy getResolutionStrategy(Type inputType) {
         return ResolutionStrategy.fromClassName(getClassName(inputType));
     }
 

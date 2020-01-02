@@ -71,6 +71,15 @@ class RocketModelConverterTest {
         assertThat(actualResolverMap.get(ResolutionStrategy.WRAP_GENERIC_ARRAY)).isInstanceOf(GenericArrayModelResolver.class);
         assertThat(actualResolverMap.get(ResolutionStrategy.WRAP_GENERIC)).isInstanceOf(GenericModelResolver.class);
         assertThat(actualResolverMap.get(ResolutionStrategy.DEFAULT)).isInstanceOf(DefaultModelResolver.class);
+
+        {
+            final GenericModelResolver genericConverter = (GenericModelResolver) actualResolverMap.get(ResolutionStrategy.WRAP_GENERIC);
+            assertThat(genericConverter.getBaseConverter()).isSameAs(actualConverter);
+        }
+        {
+            final GenericArrayModelResolver genericConverter = (GenericArrayModelResolver) actualResolverMap.get(ResolutionStrategy.WRAP_GENERIC_ARRAY);
+            assertThat(genericConverter.getBaseConverter()).isSameAs(actualConverter);
+        }
     }
 
     private static Stream<Arguments> params_for_resolution() {

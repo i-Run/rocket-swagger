@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 
 class ModelConversionUtilsTest {
 
-    private static Stream<Arguments> computeModelTypeParams() {
+    private static Stream<Arguments> params_should_get_resolution_strategy() {
         return Stream.of(
                 Arguments.of(Mono.class, ResolutionStrategy.WRAP_GENERIC),
                 Arguments.of(Flux.class, ResolutionStrategy.WRAP_GENERIC_ARRAY),
@@ -37,14 +37,14 @@ class ModelConversionUtilsTest {
 
 
     @ParameterizedTest
-    @MethodSource("computeModelTypeParams")
-    void should_compute_model_type(Class<?> inputClass, ResolutionStrategy expectedResult) {
+    @MethodSource("params_should_get_resolution_strategy")
+    void should_get_resolution_strategy(Class<?> inputClass, ResolutionStrategy expectedResult) {
         final Type inputType = mock(Type.class);
         when(inputType.getTypeName()).thenReturn("[simple type : " + inputClass.getName() + "]");
-        assertThat(ModelConversionUtils.computeModelType(inputType)).isEqualTo(expectedResult);
+        assertThat(ModelConversionUtils.getResolutionStrategy(inputType)).isEqualTo(expectedResult);
     }
 
-    private static Stream<Arguments> classNameParams() {
+    private static Stream<Arguments> params_should_get_class_name() {
         return Stream.of(
                 Arguments.of("fr.irun.cms.api.model.Page", "Page"),
                 Arguments.of("fr.irun.hexamon.api.Entity", "Entity"),
@@ -53,7 +53,7 @@ class ModelConversionUtilsTest {
     }
 
     @ParameterizedTest
-    @MethodSource("classNameParams")
+    @MethodSource("params_should_get_class_name")
     void should_get_class_name(String fullClassName, String classSimpleName) {
         final Type inputType = mock(Type.class);
         when(inputType.getTypeName()).thenReturn("[simple type : " + fullClassName + "]");
