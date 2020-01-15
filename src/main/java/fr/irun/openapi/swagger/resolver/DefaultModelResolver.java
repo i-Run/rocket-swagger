@@ -1,6 +1,6 @@
 package fr.irun.openapi.swagger.resolver;
 
-import fr.irun.openapi.swagger.utils.ModelEnum;
+import fr.irun.openapi.swagger.utils.ResolutionStrategy;
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;
 import io.swagger.models.Model;
@@ -13,31 +13,26 @@ import java.util.Iterator;
 /**
  * Default Model resolver.
  */
-public class StandardModelResolver implements RocketModelResolver {
-
-    private final ModelConverter modelConverter;
-
-    /**
-     * Constructor.
-     *
-     * @param modelConverter The base used Model converter.
-     */
-    public StandardModelResolver(ModelConverter modelConverter) {
-        this.modelConverter = modelConverter;
-    }
+public class DefaultModelResolver implements RocketModelResolver {
 
     @Override
-    public ModelEnum getModelType() {
-        return ModelEnum.STANDARD;
+    public ResolutionStrategy getResolutionStrategy() {
+        return ResolutionStrategy.DEFAULT;
     }
 
     @Override
     public Property resolveProperty(Type type, ModelConverterContext context, Annotation[] annotations, Iterator<ModelConverter> iterator) {
-        return modelConverter.resolveProperty(type, context, annotations, iterator);
+        if (iterator.hasNext()) {
+            return iterator.next().resolveProperty(type, context, annotations, iterator);
+        }
+        return null;
     }
 
     @Override
     public Model resolve(Type type, ModelConverterContext modelConverterContext, Iterator<ModelConverter> iterator) {
-        return modelConverter.resolve(type, modelConverterContext, iterator);
+        if (iterator.hasNext()) {
+            return iterator.next().resolve(type, modelConverterContext, iterator);
+        }
+        return null;
     }
 }
