@@ -86,6 +86,7 @@ maven:release:
   when: manual
   only:
     - develop
+    - /^support/.*$/
 
 maven:sonar:
   stage: deploy
