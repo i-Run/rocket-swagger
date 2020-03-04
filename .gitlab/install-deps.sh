@@ -17,6 +17,7 @@ readonly NORMAL="\\e[0m"
 readonly RED="\\e[1;31m"
 readonly YELLOW="\\e[1;33m"
 readonly DIM="\\e[2m"
+# shellcheck disable=SC2034
 readonly BOLD="\\e[1m"
 readonly LOG_FILE="/tmp/$(basename "$0").log"
 readonly BLUE="\\e[34m"
@@ -52,7 +53,7 @@ function cleanup() {
     rm -rf "/tmp/git"
     return
 }
-
+# shellcheck disable=SC2034
 readonly VERSION_SEPARATOR="\\u02DF"
 readonly IRUN_GROUP_ID="fr.irun"
 readonly IRUN_PATTERN="(fr.irun:.*)"
@@ -77,7 +78,7 @@ function downloadDependenciesParentPom() {
 
     debug "mvn ${MVN_ARGS[*]} clean dependency:copy-dependencies \
                 -Dmdep.addParentPoms=true \
-                -DincludeGroupIds="${IRUN_GROUP_ID}" \
+                -DincludeGroupIds=${IRUN_GROUP_ID} \
                 -DincludeTypes=pom \
                 -f ${prefix}"
 
@@ -129,10 +130,10 @@ function installDependency() {
     if [[ "$version" = *"SNAPSHOT" ]]; then
         info "repository: ${repository}, projetName: ${projetName}, version: ${version}"
         if git clone "$repository" "$gitDir"; then
-            local pattern; pattern="$(echo "${CI_COMMIT_REF_NAME}"|sed 's:^.*/[0-9]*.::')" #  i remove string/number/string
+            local pattern; pattern="${CI_COMMIT_REF_NAME/*?(\/)+([0-9])?([[:punct:]])/}" #  i remove string/number/string
             local allBranch; allBranch="$(git -C "${gitDir}" branch -a )" # view all branch
             local selectBranch; selectBranch="$(cat <<< "$allBranch"| grep "$pattern" || true)" # select branch we have the same name of project
-            local localBranch; localBranch="$(echo "${selectBranch}"|sed 's:^.*origin/::' || true)" # remove "remotes/origin/"
+            local localBranch; localBranch="${selectBranch/*origin\//}" # remove "remotes/origin/"
             debug "see all branch: \n ${allBranch}"
             debug " pattern : ${pattern}"
             debug "selected branch: $selectBranch"
@@ -187,7 +188,7 @@ function installDependencies() {
 
 if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
     trap cleanup EXIT
-    prog "START OF PROGRAM"   
+    prog "START OF PROGRAM"
     # Parse command line arguments
     POSITIONAL=()
     verbose=false
@@ -208,7 +209,7 @@ if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
         esac
     done
     set -- "${POSITIONAL[@]}" # restore positional parameters
-
+    # shellcheck disable=SC2016,SC2155
     declare -ra CURRENT_ARTIFACT_ID="$(mvn exec:exec -q -Dexec.executable=echo -Dexec.args='${project.artifactId}')"
     debug "${CURRENT_ARTIFACT_ID[*]}"
 
@@ -218,5 +219,5 @@ if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
 
     installed=()
     installDependencies "."
-    prog "END OF PROGRAM"    
+    prog "END OF PROGRAM"
 fi
