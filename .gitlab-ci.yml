@@ -1,30 +1,39 @@
+---
 image: d.i-run.fr/irun-compiler:20190917.f02b5df2
 
 variables:
-  #CHAT_WEBHOOK_URL: Must exists in group variables or projet variables
-  #GIT_SUBMODULE_STRATEGY: normal
+  # CHAT_WEBHOOK_URL: Must exists in group variables or projet variables
+  # GIT_SUBMODULE_STRATEGY: normal
   # As of Maven 3.3.0 instead of this you may define these options in `.mvn/maven.config` so the same config is used
   # when running from the command line.
   # `installAtEnd` and `deployAtEnd` are only effective with recent version of the corresponding plugins.
-  MAVEN_CLI_OPTS: "--batch-mode -Dmaven.repo.local=${CI_PROJECT_DIR}/.m2/repository --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
+  MAVEN_CLI_OPTS:
+    "--batch-mode -Dmaven.repo.local=${CI_PROJECT_DIR}/.m2/repository
+      --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
 
 cache:
   key: ${CI_COMMIT_REF_SLUG}
   paths:
-  - ${CI_PROJECT_DIR}/.m2/repository/
+    - ${CI_PROJECT_DIR}/.m2/repository/
 
 stages:
-- build
-- test
-- release
-- deploy
-- notify
+  - build
+  - test
+  - release
+  - deploy
+  - notify
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - when: always
 
 maven:build:
   stage: build
-  before_script:  
+  before_script:
     - find "${CI_PROJECT_DIR}/.m2/repository" -type f -name "*SNAPSHOT*" -delete || true
-    - .gitlab/install-deps.sh   
+    - .gitlab/install-deps.sh
   script:
     - mvn ${MAVEN_CLI_OPTS} clean install -DskipTests
   artifacts:
@@ -35,11 +44,11 @@ maven:build:
 maven:checkstyle:
   stage: test
   dependencies:
-  - maven:build
+    - maven:build
   cache:
     policy: pull
   script:
-  - mvn ${MAVEN_CLI_OPTS} install checkstyle:check -DskipTests
+    - mvn ${MAVEN_CLI_OPTS} install checkstyle:check -DskipTests
 
 maven:javadoc:
   stage: test
@@ -49,26 +58,41 @@ maven:javadoc:
     policy: pull
   script:
     - mvn ${MAVEN_CLI_OPTS} javadoc:javadoc
-    
+
 maven:test:
   stage: test
   dependencies:
-  - maven:build
+    - maven:build
   script: mvn ${MAVEN_CLI_OPTS} test -Pintegration
   artifacts:
     reports:
       junit: [
       ]
 
+🖍yaml:lint:
+  stage: test
+  image: python:3-slim
+  before_script:
+    - export PATH="$PATH:~/.local/bin"
+    - pip install --user yamllint
+  script:
+    - yamllint .
+
+shell-check:
+  image: d.i-run.fr/irun-compiler:jdk8-20200224.d83136a5
+  stage: test
+  script:
+    - shellcheck .gitlab/*.sh
+
 maven:release:
   stage: release
   dependencies:
-  - maven:build
+    - maven:build
   before_script:
     - git checkout -B "$CI_BUILD_REF_NAME"
     - mvn ${MAVEN_CLI_OPTS} -DdryRun=true release:prepare
     - git clean -f
-  script: 
+  script:
     - |
       mvn ${MAVEN_CLI_OPTS} \
         release:prepare \
@@ -83,10 +107,11 @@ maven:release:
     - git checkout master
     - git merge --no-ff -m "[maven-release][skip CI] Merge release in master" origin/develop~1
     - git push origin master
-  when: manual
-  only:
-    - develop
-    - /^support/.*$/
+  rules:
+    - if: >
+        $CI_COMMIT_REF_NAME == "develop"
+        || $CI_COMMIT_REF_NAME =~ /^support/
+      when: manual
 
 maven:sonar:
   stage: deploy
@@ -97,17 +122,20 @@ maven:sonar:
     policy: pull
   script:
     - mvn ${MAVEN_CLI_OPTS} test sonar:sonar -Psonar
-  only:
-    - develop
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "develop"'
+      when: always
 
 maven:deploy:
   stage: deploy
   dependencies:
     - maven:build
   script: mvn ${MAVEN_CLI_OPTS} deploy -DskipTests
-  only:
-    - develop
-    - master
+  rules:
+    - if: >
+        $CI_COMMIT_REF_NAME == "develop"
+        || $CI_COMMIT_REF_NAME == "master"
+      when: always
 
 trigger:itg:
   stage: notify
@@ -116,18 +144,21 @@ trigger:itg:
   trigger:
     project: nora/tooling/itg-deploy
     branch: master
-  only:
-    - develop
-  when: on_success
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "develop"'
+      when: on_success
 
 documentation:deploy:
   stage: notify
   allow_failure: true
   cache: {}
-  script: 
-    - curl --request POST --form "token=${CI_JOB_TOKEN}" --form ref=develop "${CI_API_V4_URL}/projects/149/trigger/pipeline"
-  only:
-    - develop
+  script:
+    - >
+      curl --request POST --form "token=${CI_JOB_TOKEN}"
+      --form ref=develop "${CI_API_V4_URL}/projects/149/trigger/pipeline"
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "develop"'
+      when: always
 
 mattermost:failure:
   stage: notify
