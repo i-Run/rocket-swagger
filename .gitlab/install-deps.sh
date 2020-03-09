@@ -209,8 +209,9 @@ if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
         esac
     done
     set -- "${POSITIONAL[@]}" # restore positional parameters
-    # shellcheck disable=SC2016,SC2155
-    declare -ra CURRENT_ARTIFACT_ID="$(mvn exec:exec -q -Dexec.executable=echo -Dexec.args='${project.artifactId}')"
+    declare -a CURRENT_ARTIFACT_ID
+    #shellcheck disable=SC2016
+    readonly CURRENT_ARTIFACT_ID=("$(mvn exec:exec -q -Dexec.executable=echo -Dexec.args='${project.artifactId}')")
     debug "${CURRENT_ARTIFACT_ID[*]}"
 
     # Do nothing for develop branch
