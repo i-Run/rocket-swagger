@@ -1,5 +1,7 @@
 package fr.irun.openapi.swagger.utils;
 
+import io.swagger.v3.core.converter.AnnotatedType;
+
 import javax.annotation.Nullable;
 import java.lang.reflect.Type;
 import java.util.Optional;
@@ -18,7 +20,7 @@ final class VisitableDefaultType implements VisitableGenericType {
     }
 
     @Override
-    public Optional<Type> getInnerType(Visitor visitor) {
+    public Optional<AnnotatedType> getInnerType(Visitor visitor) {
         return Optional.ofNullable(type)
                 .flatMap(visitor::getInnerTypeFromDefaultType);
     }

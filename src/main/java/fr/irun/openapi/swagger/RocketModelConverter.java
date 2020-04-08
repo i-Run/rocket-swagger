@@ -13,19 +13,17 @@ import fr.irun.openapi.swagger.resolver.MapModelResolver;
 import fr.irun.openapi.swagger.resolver.RocketModelResolver;
 import fr.irun.openapi.swagger.utils.ModelConversionUtils;
 import fr.irun.openapi.swagger.utils.ResolutionStrategy;
-import io.swagger.converter.ModelConverter;
-import io.swagger.converter.ModelConverterContext;
-import io.swagger.converter.ModelConverters;
-import io.swagger.jackson.ModelResolver;
-import io.swagger.models.Model;
-import io.swagger.models.properties.Property;
-import io.swagger.util.Json;
+import io.swagger.v3.core.converter.AnnotatedType;
+import io.swagger.v3.core.converter.ModelConverter;
+import io.swagger.v3.core.converter.ModelConverterContext;
+import io.swagger.v3.core.converter.ModelConverters;
+import io.swagger.v3.core.jackson.ModelResolver;
+import io.swagger.v3.core.util.Json;
+import io.swagger.v3.oas.models.media.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Type;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -76,19 +74,8 @@ public class RocketModelConverter implements ModelConverter {
         return resolversByStrategy;
     }
 
-    @Override
-    public Property resolveProperty(Type type, ModelConverterContext context, Annotation[] annotations, Iterator<ModelConverter> iterator) {
-        return getResolverForType(type).resolveProperty(type, context, annotations, iterator);
-    }
-
-
-    @Override
-    public Model resolve(Type type, ModelConverterContext context, Iterator<ModelConverter> iterator) {
-        return getResolverForType(type).resolve(type, context, iterator);
-    }
-
     @Nonnull
-    private RocketModelResolver getResolverForType(Type type) {
+    private RocketModelResolver getResolverForType(AnnotatedType type) {
         final ResolutionStrategy resolutionStrategy = ModelConversionUtils.getResolutionStrategy(type);
         final RocketModelResolver resolver = Optional.ofNullable(resolversByStrategy.get(resolutionStrategy))
                 .orElseThrow(() -> new RocketSwaggerException("Unable to find model resolver for model type: " + resolutionStrategy));
@@ -101,4 +88,8 @@ public class RocketModelConverter implements ModelConverter {
         ModelConverters.getInstance().addConverter(new ModelResolver(objectMapper));
     }
 
+    @Override
+    public Schema<?> resolve(AnnotatedType type, ModelConverterContext context, Iterator<ModelConverter> chain) {
+        return getResolverForType(type).resolve(type, context, chain);
+    }
 }

@@ -11,10 +11,10 @@ import fr.irun.openapi.swagger.resolver.GenericModelResolver;
 import fr.irun.openapi.swagger.resolver.MapModelResolver;
 import fr.irun.openapi.swagger.resolver.RocketModelResolver;
 import fr.irun.openapi.swagger.utils.ResolutionStrategy;
-import io.swagger.converter.ModelConverter;
-import io.swagger.converter.ModelConverterContext;
-import io.swagger.models.Model;
-import io.swagger.models.properties.Property;
+import io.swagger.v3.core.converter.AnnotatedType;
+import io.swagger.v3.core.converter.ModelConverter;
+import io.swagger.v3.core.converter.ModelConverterContext;
+import io.swagger.v3.oas.models.media.Schema;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,8 +24,6 @@ import org.mockito.Mockito;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Type;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Iterator;
@@ -40,7 +38,6 @@ import static org.mockito.Mockito.when;
 class RocketModelConverterTest {
 
     private static final Iterator<ModelConverter> ITERATOR = Iterators.forArray();
-    private static final Annotation[] ANNOTATIONS = new Annotation[]{null};
 
     private ImmutableMap<ResolutionStrategy, RocketModelResolver> resolverMocks;
 
@@ -100,39 +97,19 @@ class RocketModelConverterTest {
         );
     }
 
-    @ParameterizedTest
-    @MethodSource("params_for_resolution")
-    void should_resolve_property(ResolutionStrategy strategy, String className) {
-        final RocketModelResolver resolverMock = resolverMocks.get(strategy);
-        assertThat(resolverMock).withFailMessage("No resolver mock associated with strategy %s", strategy).isNotNull();
-
-        final Type inputType = mock(Type.class);
-        when(inputType.getTypeName()).thenReturn(String.format("[simple type, %s]", className));
-
-        final Property expected = mock(Property.class);
-        when(resolverMock.resolveProperty(inputType, contextMock, ANNOTATIONS, ITERATOR)).thenReturn(expected);
-
-        final Property actual = tested.resolveProperty(inputType, contextMock, ANNOTATIONS, ITERATOR);
-        assertThat(actual).isNotNull();
-        assertThat(actual).isSameAs(expected);
-
-        verify(resolverMock).resolveProperty(inputType, contextMock, ANNOTATIONS, ITERATOR);
-        resolverMocks.values().forEach(Mockito::verifyNoMoreInteractions);
-    }
 
     @ParameterizedTest
     @MethodSource("params_for_resolution")
-    void should_resolve_model(ResolutionStrategy strategy, String className) {
+    void should_resolve_model(ResolutionStrategy strategy, String className) throws ClassNotFoundException {
         final RocketModelResolver resolverMock = resolverMocks.get(strategy);
         assertThat(resolverMock).withFailMessage("No resolver mock associated with strategy %s", strategy).isNotNull();
 
-        final Type inputType = mock(Type.class);
-        when(inputType.getTypeName()).thenReturn(String.format("[simple type, %s]", className));
+        final AnnotatedType inputType = new AnnotatedType(Class.forName(className));
 
-        final Model expected = mock(Model.class);
+        final Schema<?> expected = mock(Schema.class);
         when(resolverMock.resolve(inputType, contextMock, ITERATOR)).thenReturn(expected);
 
-        final Model actual = tested.resolve(inputType, contextMock, ITERATOR);
+        final Schema<?> actual = tested.resolve(inputType, contextMock, ITERATOR);
         assertThat(actual).isNotNull();
         assertThat(actual).isSameAs(expected);
 

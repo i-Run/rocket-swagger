@@ -43,7 +43,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -503,7 +502,8 @@ public class SpringOpenApiReader implements OpenApiReader {
 
                     if (subResource != null && !scannedResources.contains(subResource)) {
                         scannedResources.add(subResource);
-                        read(subResource, operationPath, httpMethod, true, operation.getRequestBody(), operation.getResponses(), classTags, operation.getParameters(), scannedResources);
+                        read(subResource, operationPath, httpMethod, true, operation.getRequestBody(),
+                                operation.getResponses(), classTags, operation.getParameters(), scannedResources);
                         // remove the sub resource so that it can visit it later in another path
                         // but we have a room for optimization in the future to reuse the scanned result
                         // by caching the scanned resources in the reader instance to avoid actual scanning
@@ -571,7 +571,7 @@ public class SpringOpenApiReader implements OpenApiReader {
         return openAPI;
     }
 
-    protected Content processContent(Content content, Schema schema, RequestMapping methodConsumes, RestController classConsumes) {
+    protected Content processContent(Content content, Schema<?> schema, RequestMapping methodConsumes, RequestMapping classConsumes) {
         if (content == null) {
             content = new Content();
         }
@@ -580,7 +580,7 @@ public class SpringOpenApiReader implements OpenApiReader {
                 setMediaTypeToContent(schema, content, value);
             }
         } else if (classConsumes != null) {
-            for (String value : classConsumes.) {
+            for (String value : classConsumes.value()) {
                 setMediaTypeToContent(schema, content, value);
             }
         } else {
@@ -613,7 +613,7 @@ public class SpringOpenApiReader implements OpenApiReader {
                         for (MediaType mediaType : requestBody.getContent().values()) {
                             if (mediaType.getSchema() == null) {
                                 if (requestBodyParameter.getSchema() == null) {
-                                    mediaType.setSchema(new Schema());
+                                    mediaType.setSchema(new Schema<>());
                                 } else {
                                     mediaType.setSchema(requestBodyParameter.getSchema());
                                 }
@@ -649,7 +649,6 @@ public class SpringOpenApiReader implements OpenApiReader {
                     isRequestBodyEmpty = false;
                 }
                 if (!isRequestBodyEmpty) {
-                    //requestBody.setExtensions(extensions);
                     operation.setRequestBody(requestBody);
                 }
             }
@@ -668,7 +667,7 @@ public class SpringOpenApiReader implements OpenApiReader {
         return null;
     }
 
-    private void setMediaTypeToContent(Schema schema, Content content, String value) {
+    private void setMediaTypeToContent(Schema<?> schema, Content content, String value) {
         MediaType mediaTypeObject = new MediaType();
         mediaTypeObject.setSchema(schema);
         content.addMediaType(value, mediaTypeObject);
@@ -835,7 +834,7 @@ public class SpringOpenApiReader implements OpenApiReader {
         if (apiTags != null) {
             apiTags.stream()
                     .filter(t -> operation.getTags() == null || (operation.getTags() != null && !operation.getTags().contains(t.name())))
-                    .map(t -> t.name())
+                    .map(io.swagger.v3.oas.annotations.tags.Tag::name)
                     .forEach(operation::addTagsItem);
             AnnotationsUtils.getTags(apiTags.toArray(new io.swagger.v3.oas.annotations.tags.Tag[apiTags.size()]), true).ifPresent(tags -> openApiTags.addAll(tags));
         }
@@ -870,8 +869,8 @@ public class SpringOpenApiReader implements OpenApiReader {
         if (classResponses != null && classResponses.length > 0) {
             OperationParser.getApiResponses(
                     classResponses,
-                    classProduces,
-                    methodProduces,
+                    null,
+                    null,
                     components,
                     jsonViewAnnotation
             ).ifPresent(responses -> {
@@ -884,15 +883,15 @@ public class SpringOpenApiReader implements OpenApiReader {
         }
 
         if (apiOperation != null) {
-            setOperationObjectFromApiOperationAnnotation(operation, apiOperation, methodProduces, classProduces, methodConsumes, classConsumes, jsonViewAnnotation);
+            setOperationObjectFromApiOperationAnnotation(operation, apiOperation, methodConsumes, classConsumes, jsonViewAnnotation);
         }
 
         // apiResponses
         if (apiResponses != null && apiResponses.size() > 0) {
             OperationParser.getApiResponses(
                     apiResponses.toArray(new io.swagger.v3.oas.annotations.responses.ApiResponse[apiResponses.size()]),
-                    classProduces,
-                    methodProduces,
+                    null,
+                    null,
                     components,
                     jsonViewAnnotation
             ).ifPresent(responses -> {
@@ -944,13 +943,13 @@ public class SpringOpenApiReader implements OpenApiReader {
 
         final Class<?> subResource = getSubResourceWithJaxRsSubresourceLocatorSpecs(method);
         if (!shouldIgnoreClass(returnType.getTypeName()) && !method.getGenericReturnType().equals(subResource)) {
-            ResolvedSchema resolvedSchema = ModelConverters.getInstance().resolveAsResolvedSchema(new AnnotatedType(returnType).resolveAsRef(true).jsonViewAnnotation(jsonViewAnnotation));
+            ResolvedSchema resolvedSchema = ModelConverters.getInstance()
+                    .resolveAsResolvedSchema(new AnnotatedType(returnType).resolveAsRef(true).jsonViewAnnotation(jsonViewAnnotation));
             if (resolvedSchema.schema != null) {
                 Schema returnTypeSchema = resolvedSchema.schema;
                 Content content = new Content();
                 MediaType mediaType = new MediaType().schema(returnTypeSchema);
-                AnnotationsUtils.applyTypes(classProduces == null ? new String[0] : classProduces.value(),
-                        methodProduces == null ? new String[0] : methodProduces.value(), content, mediaType);
+                AnnotationsUtils.applyTypes(new String[0], new String[0], content, mediaType);
                 if (operation.getResponses() == null) {
                     operation.responses(
                             new ApiResponses()._default(
@@ -981,8 +980,7 @@ public class SpringOpenApiReader implements OpenApiReader {
         if (operation.getResponses() == null || operation.getResponses().isEmpty()) {
             Content content = new Content();
             MediaType mediaType = new MediaType();
-            AnnotationsUtils.applyTypes(classProduces == null ? new String[0] : classProduces.value(),
-                    methodProduces == null ? new String[0] : methodProduces.value(), content, mediaType);
+            AnnotationsUtils.applyTypes(new String[0], new String[0], content, mediaType);
 
             ApiResponse apiResponseObject = new ApiResponse().description(DEFAULT_DESCRIPTION).content(content);
             operation.setResponses(new ApiResponses()._default(apiResponseObject));
@@ -1001,7 +999,7 @@ public class SpringOpenApiReader implements OpenApiReader {
             rawClassName = className.replace("[simple type, class ", "");
             rawClassName = rawClassName.substring(0, rawClassName.length() - 1);
         }
-        ignore = ignore || rawClassName.startsWith("javax.ws.rs.");
+        ignore = rawClassName.startsWith("org.springframework.");
         ignore = ignore || rawClassName.equalsIgnoreCase("void");
         ignore = ignore || ModelConverters.getInstance().isRegisteredAsSkippedClass(rawClassName);
         return ignore;
@@ -1102,7 +1100,7 @@ public class SpringOpenApiReader implements OpenApiReader {
             AnnotationsUtils.getExternalDocumentation(apiOperation.externalDocs()).ifPresent(operation::setExternalDocs);
         }
 
-        OperationParser.getApiResponses(apiOperation.responses(), classProduces, methodProduces, components, jsonViewAnnotation).ifPresent(responses -> {
+        OperationParser.getApiResponses(apiOperation.responses(), null, null, components, jsonViewAnnotation).ifPresent(responses -> {
             if (operation.getResponses() == null) {
                 operation.setResponses(responses);
             } else {
@@ -1127,18 +1125,16 @@ public class SpringOpenApiReader implements OpenApiReader {
         }
 
         // RequestBody in Operation
-        if (apiOperation != null && apiOperation.requestBody() != null && operation.getRequestBody() == null) {
-            OperationParser.getRequestBody(apiOperation.requestBody(), classConsumes, methodConsumes, components, jsonViewAnnotation).ifPresent(
-                    requestBodyObject -> operation.setRequestBody(requestBodyObject));
+        if (apiOperation.requestBody() != null && operation.getRequestBody() == null) {
+            OperationParser.getRequestBody(apiOperation.requestBody(), classConsumes, methodConsumes, components, jsonViewAnnotation)
+                    .ifPresent(operation::setRequestBody);
         }
 
         // Extensions in Operation
         if (apiOperation.extensions().length > 0) {
             Map<String, Object> extensions = AnnotationsUtils.getExtensions(apiOperation.extensions());
-            if (extensions != null) {
-                for (String ext : extensions.keySet()) {
-                    operation.addExtension(ext, extensions.get(ext));
-                }
+            for (String ext : extensions.keySet()) {
+                operation.addExtension(ext, extensions.get(ext));
             }
         }
     }
@@ -1173,7 +1169,7 @@ public class SpringOpenApiReader implements OpenApiReader {
         return false;
     }
 
-    protected Optional<List<Parameter>> getParametersListFromAnnotation(io.swagger.v3.oas.annotations.Parameter[] parameters, Consumes classConsumes, Consumes methodConsumes, Operation operation, JsonView jsonViewAnnotation) {
+    protected Optional<List<Parameter>> getParametersListFromAnnotation(io.swagger.v3.oas.annotations.Parameter[] parameters, RequestMapping classConsumes, RequestMapping methodConsumes, Operation operation, JsonView jsonViewAnnotation) {
         if (parameters == null) {
             return Optional.empty();
         }

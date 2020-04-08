@@ -1,6 +1,7 @@
 package fr.irun.openapi.swagger.utils;
 
 import com.fasterxml.jackson.databind.type.TypeBase;
+import io.swagger.v3.core.converter.AnnotatedType;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.ParameterizedType;
@@ -52,8 +53,8 @@ public final class ModelConversionUtils {
      * @param inputType the type to get the strategy.
      * @return the strategy related to the type.
      */
-    public static ResolutionStrategy getResolutionStrategy(Type inputType) {
-        return ResolutionStrategy.fromClassName(getClassName(inputType));
+    public static ResolutionStrategy getResolutionStrategy(AnnotatedType inputType) {
+        return ResolutionStrategy.fromClassName(getClassName(inputType.getType()));
     }
 
     /**
@@ -62,31 +63,33 @@ public final class ModelConversionUtils {
      * @param genericType the input type.
      * @return The type of the first inner element of the generic type (as optional).
      */
-    public static Optional<Type> extractGenericFirstInnerType(@Nullable Type genericType) {
+    public static Optional<AnnotatedType> extractGenericFirstInnerType(AnnotatedType genericType) {
         final VisitableGenericType.Visitor visitor = new VisitableGenericType.Visitor() {
             @Override
-            public Optional<Type> getInnerTypeFromParameterizedType(ParameterizedType parameterizedType) {
+            public Optional<AnnotatedType> getInnerTypeFromParameterizedType(ParameterizedType parameterizedType) {
                 return Optional.of(parameterizedType)
                         .map(ParameterizedType::getActualTypeArguments)
                         .filter(array -> array.length > 0)
-                        .map(array -> array[0]);
+                        .map(array -> array[0])
+                        .map(AnnotatedType::new);
             }
 
             @Override
-            public Optional<Type> getInnerTypeFromTypeBase(TypeBase typeBase) {
+            public Optional<AnnotatedType> getInnerTypeFromTypeBase(TypeBase typeBase) {
                 return Optional.of(typeBase)
                         .map(TypeBase::getBindings)
                         .filter(b -> !b.isEmpty())
-                        .map(b -> b.getBoundType(0));
+                        .map(b -> b.getBoundType(0))
+                        .map(AnnotatedType::new);
             }
 
             @Override
-            public Optional<Type> getInnerTypeFromDefaultType(Type type) {
+            public Optional<AnnotatedType> getInnerTypeFromDefaultType(Type type) {
                 return Optional.empty();
             }
         };
 
-        return wrapGenericType(genericType).getInnerType(visitor);
+        return wrapGenericType(genericType.getType()).getInnerType(visitor);
     }
 
     private static VisitableGenericType wrapGenericType(@Nullable Type genericType) {

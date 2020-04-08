@@ -3,31 +3,25 @@ package fr.irun.openapi.swagger.resolver;
 
 import com.google.common.collect.Iterators;
 import fr.irun.openapi.swagger.utils.ResolutionStrategy;
-import io.swagger.converter.ModelConverter;
-import io.swagger.converter.ModelConverterContext;
-import io.swagger.models.Model;
-import io.swagger.models.ModelImpl;
-import io.swagger.models.properties.DateTimeProperty;
-import io.swagger.models.properties.Property;
+import io.swagger.v3.core.converter.AnnotatedType;
+import io.swagger.v3.core.converter.ModelConverter;
+import io.swagger.v3.core.converter.ModelConverterContext;
+import io.swagger.v3.oas.models.media.Schema;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Type;
 import java.util.Iterator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 class DateTimeModelResolverTest {
 
-    private static final Annotation[] ANNOTATIONS = new Annotation[0];
-
-    private Type typeMock;
+    private AnnotatedType typeMock;
     private ModelConverterContext contextMock;
     private ModelConverter modelConverterMock;
 
@@ -35,7 +29,7 @@ class DateTimeModelResolverTest {
 
     @BeforeEach
     void setUp() {
-        typeMock = mock(Type.class);
+        typeMock = mock(AnnotatedType.class);
         contextMock = mock(ModelConverterContext.class);
         modelConverterMock = mock(ModelConverter.class);
 
@@ -48,30 +42,18 @@ class DateTimeModelResolverTest {
     }
 
     @Test
-    void should_resolve_property_as_date_time() {
-        final Iterator<ModelConverter> iterator = Iterators.forArray(modelConverterMock);
-
-        final Property actual = tested.resolveProperty(typeMock, contextMock, ANNOTATIONS, iterator);
-
-        assertThat(actual).isNotNull();
-        assertThat(actual).isInstanceOf(DateTimeProperty.class);
-
-        verifyZeroInteractions(typeMock, contextMock, modelConverterMock);
-    }
-
-    @Test
     void should_resolve_model() {
         final Iterator<ModelConverter> iterator = Iterators.forArray(modelConverterMock);
-        final Model expected = new ModelImpl();
+        final Schema<?> expected = new Schema<>();
         when(modelConverterMock.resolve(typeMock, contextMock, iterator)).thenReturn(expected);
 
-        final Model actual = tested.resolve(typeMock, contextMock, iterator);
+        final Schema<?> actual = tested.resolve(typeMock, contextMock, iterator);
         assertThat(actual).isNotNull();
         assertThat(actual).isSameAs(expected);
 
         verify(modelConverterMock).resolve(typeMock, contextMock, iterator);
         verifyNoMoreInteractions(modelConverterMock);
-        verifyZeroInteractions(typeMock, contextMock);
+        verifyNoInteractions(typeMock, contextMock);
     }
 
     @Test
