@@ -13,7 +13,10 @@ import java.util.Iterator;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -43,15 +46,15 @@ class MapModelResolverTest {
     void should_resolve_map_model() {
         final Iterator<ModelConverter> converterChain = Iterators.forArray(converterMock);
         final Schema<?> expected = mock(Schema.class);
-        AnnotatedType type = new AnnotatedType(Map.class);
-        when(converterMock.resolve(type, contextMock, converterChain)).thenReturn(expected);
+        AnnotatedType type = spy(new AnnotatedType(Map.class));
+        when(converterMock.resolve(eq(new AnnotatedType(Map.class)), same(contextMock), same(converterChain))).thenReturn(expected);
 
         final Schema<?> actual = tested.resolve(type, contextMock, converterChain);
 
         assertThat(actual).isNotNull();
         assertThat(actual).isSameAs(expected);
 
-        verify(converterMock).resolve(type, contextMock, converterChain);
+        verify(converterMock).resolve(eq(new AnnotatedType(Map.class)), same(contextMock), same(converterChain));
         verifyNoMoreInteractions(converterMock);
         verifyNoInteractions(contextMock, type);
     }

@@ -4,6 +4,7 @@ package fr.irun.openapi.swagger;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
+import com.google.common.reflect.TypeToken;
 import fr.irun.openapi.swagger.resolver.DateTimeModelResolver;
 import fr.irun.openapi.swagger.resolver.DefaultModelResolver;
 import fr.irun.openapi.swagger.resolver.GenericArrayModelResolver;
@@ -21,9 +22,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
+import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.lang.reflect.Type;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Iterator;
@@ -83,28 +86,31 @@ class RocketModelConverterTest {
         }
     }
 
+    @SuppressWarnings("UnstableApiUsage")
     private static Stream<Arguments> params_for_resolution() {
+
         return Stream.of(
-                Arguments.of(ResolutionStrategy.DATE_TIME, Instant.class.getName()),
-                Arguments.of(ResolutionStrategy.DATE_TIME, LocalDateTime.class.getName()),
-                Arguments.of(ResolutionStrategy.DATE_TIME, java.util.Date.class.getName()),
-                Arguments.of(ResolutionStrategy.DATE_TIME, java.sql.Date.class.getName()),
-                Arguments.of(ResolutionStrategy.WRAP_GENERIC, Mono.class.getName()),
-                Arguments.of(ResolutionStrategy.WRAP_GENERIC, "org.springframework.http.ResponseEntity<java.lang.Integer>"),
-                Arguments.of(ResolutionStrategy.WRAP_GENERIC_ARRAY, Flux.class.getName()),
-                Arguments.of(ResolutionStrategy.MAP, JsonNode.class.getName()),
-                Arguments.of(ResolutionStrategy.DEFAULT, String.class.getName())
+                Arguments.of(ResolutionStrategy.DATE_TIME, Instant.class),
+                Arguments.of(ResolutionStrategy.DATE_TIME, LocalDateTime.class),
+                Arguments.of(ResolutionStrategy.DATE_TIME, java.util.Date.class),
+                Arguments.of(ResolutionStrategy.DATE_TIME, java.sql.Date.class),
+                Arguments.of(ResolutionStrategy.WRAP_GENERIC, Mono.class),
+                Arguments.of(ResolutionStrategy.WRAP_GENERIC, new TypeToken<ResponseEntity<Integer>>() {
+                }.getType()),
+                Arguments.of(ResolutionStrategy.WRAP_GENERIC_ARRAY, Flux.class),
+                Arguments.of(ResolutionStrategy.MAP, JsonNode.class),
+                Arguments.of(ResolutionStrategy.DEFAULT, String.class)
         );
     }
 
 
     @ParameterizedTest
     @MethodSource("params_for_resolution")
-    void should_resolve_model(ResolutionStrategy strategy, String className) throws ClassNotFoundException {
+    void should_resolve_model(ResolutionStrategy strategy, Type javaType) {
         final RocketModelResolver resolverMock = resolverMocks.get(strategy);
         assertThat(resolverMock).withFailMessage("No resolver mock associated with strategy %s", strategy).isNotNull();
 
-        final AnnotatedType inputType = new AnnotatedType(Class.forName(className));
+        final AnnotatedType inputType = new AnnotatedType(javaType);
 
         final Schema<?> expected = mock(Schema.class);
         when(resolverMock.resolve(inputType, contextMock, ITERATOR)).thenReturn(expected);

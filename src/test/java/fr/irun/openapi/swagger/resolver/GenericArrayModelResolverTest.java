@@ -16,6 +16,7 @@ import java.util.Iterator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -58,7 +59,7 @@ class GenericArrayModelResolverTest {
         assertThat(actualModel).isNotNull();
         assertThat(actualModel).isSameAs(expectedModel);
 
-        verify(modelConverterMock).resolve(same(innerType), same(contextMock), same(converterChain));
+        verify(modelConverterMock).resolve(eq(innerType), same(contextMock), same(converterChain));
         verifyNoMoreInteractions(modelConverterMock);
     }
 

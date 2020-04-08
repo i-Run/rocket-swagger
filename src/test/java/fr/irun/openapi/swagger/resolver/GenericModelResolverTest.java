@@ -11,12 +11,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 
-import java.lang.annotation.Annotation;
 import java.util.Iterator;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -26,8 +26,6 @@ import static org.mockito.Mockito.when;
 
 @SuppressWarnings("UnstableApiUsage")
 class GenericModelResolverTest {
-
-    private static final Annotation[] ANNOTATIONS = new Annotation[0];
 
     private ModelConverter modelConverterMock;
     private ModelConverterContext contextMock;
@@ -61,7 +59,7 @@ class GenericModelResolverTest {
         assertThat(actualModel).isNotNull();
         assertThat(actualModel).isSameAs(expectedModel);
 
-        verify(modelConverterMock).resolve(same(innerType), same(contextMock), same(converterChain));
+        verify(modelConverterMock).resolve(eq(innerType), same(contextMock), same(converterChain));
         verifyNoMoreInteractions(modelConverterMock);
     }
 
