@@ -109,6 +109,7 @@ public class SpringOpenApiReader implements OpenApiReader {
      * Scans a single class for Swagger annotations - does not invoke ReaderListeners
      */
     public OpenAPI read(Class<?> cls) {
+        LOGGER.debug("read single class");
         return read(cls, resolveApplicationPath(), null, false, null, null, new LinkedHashSet<String>(), new ArrayList<Parameter>(), new HashSet<Class<?>>());
     }
 
@@ -121,6 +122,8 @@ public class SpringOpenApiReader implements OpenApiReader {
      * @return the generated OpenAPI definition
      */
     public OpenAPI read(Set<Class<?>> classes) {
+        LOGGER.debug("read multiple classes");
+        LOGGER.debug("classes: {}", classes);
         Set<Class<?>> sortedClasses = new TreeSet<>((class1, class2) -> {
             if (class1.equals(class2)) {
                 return 0;
@@ -181,10 +184,12 @@ public class SpringOpenApiReader implements OpenApiReader {
     }
 
     public OpenAPI read(Set<Class<?>> classes, Map<String, Object> resources) {
+        LOGGER.debug("read multiple classes with resources...");
         return read(classes);
     }
 
     protected String resolveApplicationPath() {
+        LOGGER.debug("resolveApplicationPath ...");
         return "";
     }
 
@@ -198,6 +203,7 @@ public class SpringOpenApiReader implements OpenApiReader {
                         List<Parameter> parentParameters,
                         Set<Class<?>> scannedResources) {
 
+        LOGGER.debug("read classes with parameters...");
         Hidden hidden = cls.getAnnotation(Hidden.class);
 
         final RequestMapping apiRequestMapping = ReflectionUtils.getAnnotation(cls, RequestMapping.class);
