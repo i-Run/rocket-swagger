@@ -80,7 +80,7 @@ class ModelConversionUtilsTest {
 
         return Stream.of(
                 Arguments.of(new AnnotatedType(parameterizedType), new AnnotatedType(innerTypes[0])),
-                Arguments.of(typeBase, innerTypes[0])
+                Arguments.of(new AnnotatedType(typeBase), new AnnotatedType(innerTypes[0]))
         );
     }
 
@@ -106,7 +106,7 @@ class ModelConversionUtilsTest {
                 Arguments.of(new AnnotatedType(parameterizedType)),
                 Arguments.of(new AnnotatedType(typeBase)),
                 Arguments.of(new AnnotatedType(type)),
-                Arguments.of((Type) null)
+                Arguments.of((AnnotatedType) null)
         );
     }
 

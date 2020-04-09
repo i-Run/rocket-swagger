@@ -24,6 +24,34 @@ public final class ModelConversionUtils {
      */
     private static final Pattern FULL_CLASS_NAME_PATTERN = Pattern.compile(FULL_CLASS_NAME_STRING_PATTERN);
 
+    /**
+     * {@link fr.irun.openapi.swagger.utils.VisitableGenericType.Visitor} used to extract the first inner type from a Generic type
+     */
+    private static final VisitableGenericType.Visitor GENERIC_FIRST_INNER_VISITOR = new VisitableGenericType.Visitor() {
+        @Override
+        public Optional<AnnotatedType> getInnerTypeFromParameterizedType(ParameterizedType parameterizedType) {
+            return Optional.of(parameterizedType)
+                    .map(ParameterizedType::getActualTypeArguments)
+                    .filter(array -> array.length > 0)
+                    .map(array -> array[0])
+                    .map(AnnotatedType::new);
+        }
+
+        @Override
+        public Optional<AnnotatedType> getInnerTypeFromTypeBase(TypeBase typeBase) {
+            return Optional.of(typeBase)
+                    .map(TypeBase::getBindings)
+                    .filter(b -> !b.isEmpty())
+                    .map(b -> b.getBoundType(0))
+                    .map(AnnotatedType::new);
+        }
+
+        @Override
+        public Optional<AnnotatedType> getInnerTypeFromDefaultType(Type type) {
+            return Optional.empty();
+        }
+    };
+
     private ModelConversionUtils() {
     }
 
@@ -64,32 +92,10 @@ public final class ModelConversionUtils {
      * @return The type of the first inner element of the generic type (as optional).
      */
     public static Optional<AnnotatedType> extractGenericFirstInnerType(AnnotatedType genericType) {
-        final VisitableGenericType.Visitor visitor = new VisitableGenericType.Visitor() {
-            @Override
-            public Optional<AnnotatedType> getInnerTypeFromParameterizedType(ParameterizedType parameterizedType) {
-                return Optional.of(parameterizedType)
-                        .map(ParameterizedType::getActualTypeArguments)
-                        .filter(array -> array.length > 0)
-                        .map(array -> array[0])
-                        .map(AnnotatedType::new);
-            }
-
-            @Override
-            public Optional<AnnotatedType> getInnerTypeFromTypeBase(TypeBase typeBase) {
-                return Optional.of(typeBase)
-                        .map(TypeBase::getBindings)
-                        .filter(b -> !b.isEmpty())
-                        .map(b -> b.getBoundType(0))
-                        .map(AnnotatedType::new);
-            }
-
-            @Override
-            public Optional<AnnotatedType> getInnerTypeFromDefaultType(Type type) {
-                return Optional.empty();
-            }
-        };
-
-        return wrapGenericType(genericType.getType()).getInnerType(visitor);
+        return Optional.ofNullable(genericType)
+                .map(AnnotatedType::getType)
+                .map(ModelConversionUtils::wrapGenericType)
+                .flatMap(t -> t.getInnerType(GENERIC_FIRST_INNER_VISITOR));
     }
 
     private static VisitableGenericType wrapGenericType(@Nullable Type genericType) {
