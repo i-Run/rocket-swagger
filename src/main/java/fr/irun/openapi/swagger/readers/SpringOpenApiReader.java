@@ -42,6 +42,8 @@ import io.swagger.v3.oas.models.tags.Tag;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.lang.annotation.Annotation;
@@ -203,10 +205,11 @@ public class SpringOpenApiReader implements OpenApiReader {
                         List<Parameter> parentParameters,
                         Set<Class<?>> scannedResources) {
 
-        LOGGER.debug("read classes with parameters...");
+        LOGGER.debug("read class {}, parentPath: {}, parentMethod: {} ...", cls, parentPath, parentMethod);
+
         Hidden hidden = cls.getAnnotation(Hidden.class);
 
-        final RequestMapping apiRequestMapping = ReflectionUtils.getAnnotation(cls, RequestMapping.class);
+        final RequestMapping apiRequestMapping = AnnotationUtils.findAnnotation(cls, RequestMapping.class);
 
         if (hidden != null) {
             return openAPI;
@@ -285,10 +288,8 @@ public class SpringOpenApiReader implements OpenApiReader {
         // class tags, consider only name to add to class operations
         final Set<String> classTags = new LinkedHashSet<>();
         if (apiTags != null) {
-            AnnotationsUtils
-                    .getTags(apiTags, false).ifPresent(tags ->
-                    tags
-                            .stream()
+            AnnotationsUtils.getTags(apiTags, false).ifPresent(tags ->
+                    tags.stream()
                             .map(Tag::getName)
                             .forEach(classTags::add)
             );
@@ -329,8 +330,7 @@ public class SpringOpenApiReader implements OpenApiReader {
                 continue;
             }
             AnnotatedMethod annotatedMethod = bd.findMethod(method.getName(), method.getParameterTypes());
-            RequestMapping methodRequestMapping = ReflectionUtils.getAnnotation(method, RequestMapping.class);
-
+            RequestMapping methodRequestMapping = AnnotatedElementUtils.findMergedAnnotation(method, RequestMapping.class);
             if (ReflectionUtils.isOverriddenMethod(method, cls)) {
                 continue;
             }
@@ -474,7 +474,7 @@ public class SpringOpenApiReader implements OpenApiReader {
                     }
                     // if we have form parameters, need to merge them into single schema and use as request body..
                     if (formParameters.size() > 0) {
-                        Schema mergedSchema = new ObjectSchema();
+                        Schema<?> mergedSchema = new ObjectSchema();
                         for (Parameter formParam : formParameters) {
                             mergedSchema.addProperties(formParam.getName(), formParam.getSchema());
                             if (null != formParam.getRequired() && formParam.getRequired()) {

@@ -1,21 +1,18 @@
 package fr.irun.openapi.swagger.readers;
 
 import com.fasterxml.jackson.annotation.JsonView;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Streams;
 import io.swagger.v3.core.util.ParameterProcessor;
 import io.swagger.v3.core.util.ReflectionUtils;
 import io.swagger.v3.oas.integration.api.OpenAPIConfiguration;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import javax.validation.constraints.NotNull;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -28,7 +25,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 public class ReaderUtils {
     private static final String PATH_DELIMITER = "/";
@@ -164,10 +160,10 @@ public class ReaderUtils {
         StringBuilder b = new StringBuilder();
         appendPathComponent(parentPath, b);
         if (classLevelPath != null && !isSubresource) {
-            appendPathComponent(classLevelPath.name(), b);
+            appendPathComponent(classLevelPath.path()[0], b);
         }
         if (methodLevelPath != null) {
-            appendPathComponent(methodLevelPath.name(), b);
+            appendPathComponent(methodLevelPath.path()[0], b);
         }
         return b.length() == 0 ? "/" : b.toString();
     }
@@ -198,9 +194,8 @@ public class ReaderUtils {
     }
 
     public static String extractOperationMethod(Method method, Iterator<OpenAPIExtension> chain) {
-        RequestMethod[] methods = findRequestMappingAnnotation(method)
-                .map(RequestMapping::method)
-                .orElse(new RequestMethod[]{});
+        RequestMethod[] methods = Optional.ofNullable(AnnotationUtils.findAnnotation(method, RequestMapping.class))
+                .map(RequestMapping::method).orElse(new RequestMethod[]{});
         if (methods.length != 0) {
             return methods[0].name().toLowerCase();
         } else if ((ReflectionUtils.getOverriddenMethod(method)) != null) {
@@ -210,35 +205,5 @@ public class ReaderUtils {
         } else {
             return null;
         }
-    }
-
-    private static Optional<RequestMapping> findRequestMappingAnnotation(Method method) {
-        for (Annotation annotation : findAllAnnotations(method, ImmutableSet.of())) {
-            if (annotation instanceof RequestMapping) {
-                return Optional.of((RequestMapping) annotation);
-            }
-        }
-        return Optional.empty();
-    }
-
-    /**
-     * do a meta (recursive) search on the annotated element and ignore annotations that have already been found
-     *
-     * @param annotatedElement the annotated element
-     * @param ignored          the {@link Annotation} to ignore for next loop
-     */
-    private static ImmutableSet<Annotation> findAllAnnotations(@NotNull final AnnotatedElement annotatedElement,
-                                                               @NotNull final ImmutableSet<Class<? extends Annotation>> ignored) {
-        return Arrays.stream(annotatedElement.getDeclaredAnnotations())
-                .filter(annotation -> !ignored.contains(annotation.annotationType()))
-                .flatMap(annotation -> {
-                    Class<? extends Annotation> type = annotation.annotationType();
-                    ImmutableSet.Builder<Class<? extends Annotation>> bld = ImmutableSet.builder();
-                    ImmutableSet<Class<? extends Annotation>> ignoredLeafs = bld.addAll(ignored).add(type).build();
-                    return Streams.concat(
-                            Stream.of(annotation),
-                            findAllAnnotations(type, ignoredLeafs).stream()
-                    );
-                }).collect(ImmutableSet.toImmutableSet());
     }
 }
