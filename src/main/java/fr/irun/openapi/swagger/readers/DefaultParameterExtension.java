@@ -27,11 +27,11 @@ import java.util.List;
 import java.util.Set;
 
 public class DefaultParameterExtension extends AbstractOpenAPIExtension {
-    private static String QUERY_PARAM = "query";
-    private static String HEADER_PARAM = "header";
-    private static String COOKIE_PARAM = "cookie";
-    private static String PATH_PARAM = "path";
-    private static String FORM_PARAM = "form";
+    private static final String QUERY_PARAM = "query";
+    private static final String HEADER_PARAM = "header";
+    private static final String COOKIE_PARAM = "cookie";
+    private static final String PATH_PARAM = "path";
+    private static final String FORM_PARAM = "form";
 
     final ObjectMapper mapper = Json.mapper();
 
@@ -118,9 +118,9 @@ public class DefaultParameterExtension extends AbstractOpenAPIExtension {
                     classConsumes == null ? new String[0] : classConsumes.value(),
                     methodConsumes == null ? new String[0] : methodConsumes.value(), jsonViewAnnotation);
             if (unknownParameter != null) {
-                if (StringUtils.isNotBlank(unknownParameter.getIn()) && !"form".equals(unknownParameter.getIn())) {
+                if (StringUtils.isNotBlank(unknownParameter.getIn()) && !FORM_PARAM.equals(unknownParameter.getIn())) {
                     extractParametersResult.parameters.add(unknownParameter);
-                } else if ("form".equals(unknownParameter.getIn())) {
+                } else if (FORM_PARAM.equals(unknownParameter.getIn())) {
                     unknownParameter.setIn(null);
                     extractParametersResult.formParameters.add(unknownParameter);
                 } else {            // return as request body

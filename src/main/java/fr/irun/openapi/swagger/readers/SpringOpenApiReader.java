@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMethod;
 import com.fasterxml.jackson.databind.introspect.AnnotatedParameter;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+import fr.irun.openapi.swagger.utils.IgnoredTypes;
 import io.swagger.v3.core.converter.AnnotatedType;
 import io.swagger.v3.core.converter.ModelConverters;
 import io.swagger.v3.core.converter.ResolvedSchema;
@@ -416,6 +417,9 @@ public class SpringOpenApiReader implements OpenApiReader {
                     if (annotatedMethod == null) { // annotatedMethod not null only when method with 0-2 parameters
                         Type[] genericParameterTypes = method.getGenericParameterTypes();
                         for (int i = 0; i < genericParameterTypes.length; i++) {
+                            if (IgnoredTypes.IGNORED_REQUESTBODY_TYPES.contains(genericParameterTypes[i])) {
+                                continue;
+                            }
                             final Type type = TypeFactory.defaultInstance().constructType(genericParameterTypes[i], cls);
                             io.swagger.v3.oas.annotations.Parameter paramAnnotation = AnnotationsUtils.getAnnotation(io.swagger.v3.oas.annotations.Parameter.class, paramAnnotations[i]);
                             Type paramType = ParameterProcessor.getParameterType(paramAnnotation, true);
@@ -445,6 +449,9 @@ public class SpringOpenApiReader implements OpenApiReader {
                     } else {
                         for (int i = 0; i < annotatedMethod.getParameterCount(); i++) {
                             AnnotatedParameter param = annotatedMethod.getParameter(i);
+                            if (IgnoredTypes.IGNORED_REQUESTBODY_TYPES.contains(param.getParameterType())) {
+                                continue;
+                            }
                             final Type type = TypeFactory.defaultInstance().constructType(param.getParameterType(), cls);
                             io.swagger.v3.oas.annotations.Parameter paramAnnotation = AnnotationsUtils.getAnnotation(io.swagger.v3.oas.annotations.Parameter.class, paramAnnotations[i]);
                             Type paramType = ParameterProcessor.getParameterType(paramAnnotation, true);
