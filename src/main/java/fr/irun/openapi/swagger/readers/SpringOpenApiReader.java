@@ -45,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.lang.annotation.Annotation;
@@ -68,8 +69,9 @@ import java.util.TreeSet;
 public class SpringOpenApiReader implements OpenApiReader {
     private static final Logger LOGGER = LoggerFactory.getLogger(SpringOpenApiReader.class);
 
-    public static final String DEFAULT_MEDIA_TYPE_VALUE = "*/*";
+    public static final String DEFAULT_MEDIA_TYPE_VALUE = org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
     public static final String DEFAULT_DESCRIPTION = "default response";
+    public static final String DEFAULT_RESPONSE_STATUS = Integer.toString(HttpStatus.OK.value());
 
     protected OpenAPIConfiguration config;
 
@@ -962,26 +964,28 @@ public class SpringOpenApiReader implements OpenApiReader {
                 Schema returnTypeSchema = resolvedSchema.schema;
                 Content content = new Content();
                 MediaType mediaType = new MediaType().schema(returnTypeSchema);
-                AnnotationsUtils.applyTypes(new String[0], new String[0], content, mediaType);
+                AnnotationsUtils.applyTypes(new String[0], new String[]{DEFAULT_MEDIA_TYPE_VALUE}, content, mediaType);
                 if (operation.getResponses() == null) {
                     operation.responses(
-                            new ApiResponses()._default(
-                                    new ApiResponse().description(DEFAULT_DESCRIPTION)
-                                            .content(content)
-                            )
+                            new ApiResponses().addApiResponse(DEFAULT_DESCRIPTION,
+                                    new ApiResponse().description(DEFAULT_DESCRIPTION).content(content))
                     );
                 }
-                if (operation.getResponses().getDefault() != null &&
-                        StringUtils.isBlank(operation.getResponses().getDefault().get$ref())) {
-                    if (operation.getResponses().getDefault().getContent() == null) {
-                        operation.getResponses().getDefault().content(content);
+                ApiResponse defaultApiResponse = operation.getResponses().get(DEFAULT_RESPONSE_STATUS);
+                if (defaultApiResponse != null &&
+                        StringUtils.isBlank(defaultApiResponse.get$ref())) {
+                    if (defaultApiResponse.getContent() == null) {
+                        defaultApiResponse.content(content);
                     } else {
-                        for (String key : operation.getResponses().getDefault().getContent().keySet()) {
-                            if (operation.getResponses().getDefault().getContent().get(key).getSchema() == null) {
-                                operation.getResponses().getDefault().getContent().get(key).setSchema(returnTypeSchema);
+                        for (String key : defaultApiResponse.getContent().keySet()) {
+                            if (defaultApiResponse.getContent().get(key).getSchema() == null) {
+                                defaultApiResponse.getContent().get(key).setSchema(returnTypeSchema);
                             }
                         }
                     }
+                } else {
+                    operation.getResponses().addApiResponse(DEFAULT_RESPONSE_STATUS,
+                            new ApiResponse().description(DEFAULT_DESCRIPTION).content(content));
                 }
                 Map<String, Schema> schemaMap = resolvedSchema.referencedSchemas;
                 if (schemaMap != null) {
