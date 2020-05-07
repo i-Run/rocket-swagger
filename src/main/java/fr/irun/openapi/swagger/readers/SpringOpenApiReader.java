@@ -45,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.expression.spel.support.ReflectionHelper;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -967,7 +968,7 @@ public class SpringOpenApiReader implements OpenApiReader {
                 AnnotationsUtils.applyTypes(new String[0], new String[]{DEFAULT_MEDIA_TYPE_VALUE}, content, mediaType);
                 if (operation.getResponses() == null) {
                     operation.responses(
-                            new ApiResponses().addApiResponse(DEFAULT_DESCRIPTION,
+                            new ApiResponses().addApiResponse(DEFAULT_RESPONSE_STATUS,
                                     new ApiResponse().description(DEFAULT_DESCRIPTION).content(content))
                     );
                 }
