@@ -18,6 +18,7 @@ readonly NORMAL="\\e[0m"
 readonly RED="\\e[1;31m"
 readonly YELLOW="\\e[1;33m"
 readonly DIM="\\e[2m"
+# shellcheck disable=SC2034
 readonly BOLD="\\e[1m"
 readonly LOG_FILE="/tmp/$(basename "$0").log"
 function log() {
