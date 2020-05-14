@@ -1,5 +1,5 @@
 ---
-image: d.i-run.fr/irun-compiler:20190917.f02b5df2
+image: d.i-run.fr/irun-compiler:jdk8-20200224.18830594
 
 variables:
   # CHAT_WEBHOOK_URL: Must exists in group variables or projet variables
@@ -30,10 +30,10 @@ workflow:
     - when: always
 
 shell-check:
-  image: d.i-run.fr/irun-compiler:jdk8-20200224.d83136a5
   stage: test
   script:
-    - shellcheck scripts/*.sh
+    - shellcheck .gitlab/*.sh
+    - shellcheck .gitlab/scripts/*.sh
 
 maven:build:
   stage: build
