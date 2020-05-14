@@ -169,8 +169,8 @@ mattermost:failure:
     GIT_STRATEGY: none
   script:
     - |
-      curl --header "PRIVATE-TOKEN: ${BRIGIT_ACCESS_TOKEN}"
-        -s -o "./parse_pipeline_error.sh"
+      curl --header "PRIVATE-TOKEN: ${BRIGIT_ACCESS_TOKEN}"\
+        -s -o "./parse_pipeline_error.sh"\
         "https://gitlab.i-run.fr/api/v4/projects/${CI_PROJECT_ID}\
         /repository/files/.gitlab%2Fscripts%2Fparse_pipeline_error.sh/raw?ref=${CI_COMMIT_REF_NAME}"
     - chmod +x ./parse_pipeline_error.sh
