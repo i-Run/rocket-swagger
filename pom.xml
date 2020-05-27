@@ -33,10 +33,13 @@
         <junit.version>5.6.1</junit.version>
         <assertj.version>3.15.0</assertj.version>
         <mockito.version>3.3.3</mockito.version>
+        <checkstyle.version>8.23</checkstyle.version>
+        <build-tools.version>1.1.0</build-tools.version>
 
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
         <maven-dependency-plugin.version>3.1.2</maven-dependency-plugin.version>
+        <maven-checkstyle-plugin.version>3.1.0</maven-checkstyle-plugin.version>
     </properties>
 
     <dependencies>
@@ -132,6 +135,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>net.javacrumbs.json-unit</groupId>
+            <artifactId>json-unit-assertj</artifactId>
+            <version>2.17.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>${mockito.version}</version>
@@ -176,6 +185,29 @@
                     <configuration>
                         <ignoreNonCompile>true</ignoreNonCompile>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>${maven-checkstyle-plugin.version}</version>
+                    <configuration>
+                        <configLocation>fr/irun/build/checkstyle/irun_checks.xml</configLocation>
+                        <sourceDirectories>
+                            <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
+                        </sourceDirectories>
+                    </configuration>
+                    <dependencies>
+                        <dependency>
+                            <groupId>fr.irun.build</groupId>
+                            <artifactId>build-tools</artifactId>
+                            <version>${build-tools.version}</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>com.puppycrawl.tools</groupId>
+                            <artifactId>checkstyle</artifactId>
+                            <version>${checkstyle.version}</version>
+                        </dependency>
+                    </dependencies>
                 </plugin>
             </plugins>
         </pluginManagement>

@@ -1,0 +1,88 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "test",
+    "version" : "1.0.0"
+  },
+  "paths" : {
+    "/consumeStream" : {
+      "post" : {
+        "operationId" : "consumeStream",
+        "requestBody" : {
+          "content" : {
+            "application/octet-stream" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FluxFormTest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MonoVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/consumeSameAsClass" : {
+      "post" : {
+        "operationId" : "consumeSameAsClass",
+        "requestBody" : {
+          "content" : {
+            "application/xml" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FormTest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MonoVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "MonoVoid" : {
+        "type" : "object"
+      },
+      "FluxFormTest" : {
+        "type" : "object",
+        "properties" : {
+          "prefetch" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "FormTest" : {
+        "type" : "object",
+        "properties" : {
+          "left" : {
+            "type" : "string"
+          },
+          "right" : {
+            "type" : "string"
+          }
+        }
+      }
+    }
+  }
+}
