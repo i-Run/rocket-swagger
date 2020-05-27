@@ -159,11 +159,15 @@ public class ReaderUtils {
         }
         StringBuilder b = new StringBuilder();
         appendPathComponent(parentPath, b);
-        if (classLevelPath != null && !isSubresource) {
-            appendPathComponent(classLevelPath.path()[0], b);
+        if (classLevelPath != null) {
+            if (classLevelPath.path().length > 0 && !isSubresource) {
+                appendPathComponent(classLevelPath.path()[0], b);
+            }
         }
         if (methodLevelPath != null) {
-            appendPathComponent(methodLevelPath.path()[0], b);
+            if (methodLevelPath.path().length > 0) {
+                appendPathComponent(methodLevelPath.path()[0], b);
+            }
         }
         return b.length() == 0 ? "/" : b.toString();
     }

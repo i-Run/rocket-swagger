@@ -4,8 +4,11 @@ import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMethod;
-import com.fasterxml.jackson.databind.introspect.AnnotatedParameter;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import fr.irun.openapi.swagger.utils.IgnoredTypes;
 import io.swagger.v3.core.converter.AnnotatedType;
 import io.swagger.v3.core.converter.ModelConverters;
@@ -45,9 +48,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationUtils;
-import org.springframework.expression.spel.support.ReflectionHelper;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.MatrixVariable;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -63,15 +70,17 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 public class SpringOpenApiReader implements OpenApiReader {
     private static final Logger LOGGER = LoggerFactory.getLogger(SpringOpenApiReader.class);
 
     public static final String DEFAULT_MEDIA_TYPE_VALUE = org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
-    public static final String DEFAULT_DESCRIPTION = "default response";
+    public static final String DEFAULT_DESCRIPTION = "successful operation";
     public static final String DEFAULT_RESPONSE_STATUS = Integer.toString(HttpStatus.OK.value());
 
     protected OpenAPIConfiguration config;
@@ -450,13 +459,31 @@ public class SpringOpenApiReader implements OpenApiReader {
                             }
                         }
                     } else {
-                        for (int i = 0; i < annotatedMethod.getParameterCount(); i++) {
-                            AnnotatedParameter param = annotatedMethod.getParameter(i);
-                            if (IgnoredTypes.IGNORED_REQUESTBODY_TYPES.contains(param.getParameterType())) {
+                        for (java.lang.reflect.Parameter parameter : method.getParameters()) {
+                            Type parameterizedType = parameter.getParameterizedType();
+                            if (IgnoredTypes.IGNORED_REQUESTBODY_TYPES.contains(parameterizedType)) {
                                 continue;
                             }
-                            final Type type = TypeFactory.defaultInstance().constructType(param.getParameterType(), cls);
-                            io.swagger.v3.oas.annotations.Parameter paramAnnotation = AnnotationsUtils.getAnnotation(io.swagger.v3.oas.annotations.Parameter.class, paramAnnotations[i]);
+                            final Type type = TypeFactory.defaultInstance().constructType(parameterizedType, cls);
+//                            final Type type = TypeFactory.defaultInstance().constructType(param.getParameterType(), cls);
+                            ImmutableSet<Class<? extends Annotation>> annotationTypes = ImmutableSet.of(RequestParam.class, PathVariable.class, MatrixVariable.class, RequestHeader.class, CookieValue.class);
+                            Set<Annotation> annotations = annotationTypes.stream()
+                                    .map(at -> AnnotatedElementUtils.findMergedAnnotation(parameter, at))
+                                    .filter(Objects::nonNull)
+                                    .map(a -> {
+                                        Object value = AnnotationUtils.getValue(a, "value");
+                                        if (value == null || Strings.isNullOrEmpty(value.toString())) {
+                                            return AnnotationUtils.synthesizeAnnotation(ImmutableMap.of("value", parameter.getName()), a.annotationType(), parameter);
+                                        } else {
+                                            return a;
+                                        }
+                                    }).collect(Collectors.toSet());
+
+                            io.swagger.v3.oas.annotations.Parameter paramAnnotation = AnnotationUtils.getAnnotation(parameter, io.swagger.v3.oas.annotations.Parameter.class);
+                            if (paramAnnotation != null) {
+                                annotations.add(paramAnnotation);
+                            }
+
                             Type paramType = ParameterProcessor.getParameterType(paramAnnotation, true);
                             if (paramType == null) {
                                 paramType = type;
@@ -465,7 +492,7 @@ public class SpringOpenApiReader implements OpenApiReader {
                                     paramType = type;
                                 }
                             }
-                            ResolvedParameter resolvedParameter = getParameters(paramType, Arrays.asList(paramAnnotations[i]), operation, apiRequestMapping, methodRequestMapping, jsonViewAnnotation);
+                            ResolvedParameter resolvedParameter = getParameters(paramType, ImmutableList.copyOf(annotations), operation, apiRequestMapping, methodRequestMapping, jsonViewAnnotation);
                             operationParameters.addAll(resolvedParameter.parameters);
                             // collect params to use together as request Body
                             formParameters.addAll(resolvedParameter.formParameters);
@@ -476,7 +503,7 @@ public class SpringOpenApiReader implements OpenApiReader {
                                         methodRequestMapping,
                                         apiRequestMapping,
                                         operationParameters,
-                                        paramAnnotations[i],
+                                        parameter.getDeclaredAnnotations(),
                                         type,
                                         jsonViewAnnotationForRequestBody);
                             }
@@ -588,21 +615,23 @@ public class SpringOpenApiReader implements OpenApiReader {
     }
 
     protected Content processContent(Content content, Schema<?> schema, RequestMapping methodConsumes, RequestMapping classConsumes) {
-        if (content == null) {
-            content = new Content();
+        Content bodyContent = Optional.ofNullable(content).orElseGet(Content::new);
+
+        String[] mediaTypes = Optional.ofNullable(methodConsumes)
+                .map(RequestMapping::consumes)
+                .filter(c -> c.length > 0)
+                .orElseGet(() -> Optional.ofNullable(classConsumes)
+                        .map(RequestMapping::consumes)
+                        .filter(c -> c.length > 0)
+                        .orElse(new String[]{DEFAULT_MEDIA_TYPE_VALUE}));
+
+        for (String mediaType : mediaTypes) {
+            MediaType mediaTypeObject = new MediaType();
+            mediaTypeObject.setSchema(schema);
+            bodyContent.addMediaType(mediaType, mediaTypeObject);
         }
-        if (methodConsumes != null) {
-            for (String value : methodConsumes.value()) {
-                setMediaTypeToContent(schema, content, value);
-            }
-        } else if (classConsumes != null) {
-            for (String value : classConsumes.value()) {
-                setMediaTypeToContent(schema, content, value);
-            }
-        } else {
-            setMediaTypeToContent(schema, content, DEFAULT_MEDIA_TYPE_VALUE);
-        }
-        return content;
+
+        return bodyContent;
     }
 
     protected void processRequestBody(Parameter requestBodyParameter, Operation operation,
@@ -681,12 +710,6 @@ public class SpringOpenApiReader implements OpenApiReader {
             }
         }
         return null;
-    }
-
-    private void setMediaTypeToContent(Schema<?> schema, Content content, String value) {
-        MediaType mediaTypeObject = new MediaType();
-        mediaTypeObject.setSchema(schema);
-        content.addMediaType(value, mediaTypeObject);
     }
 
     public Operation parseMethod(

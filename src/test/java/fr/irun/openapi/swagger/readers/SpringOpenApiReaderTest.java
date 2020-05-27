@@ -4,6 +4,7 @@ import com.google.common.collect.Iterables;
 import fr.irun.openapi.swagger.samples.SimpleRestController;
 import fr.irun.openapi.swagger.samples.SimpleRestWithParameters;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
@@ -11,6 +12,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.http.MediaType;
 
 import java.util.List;
 
@@ -57,4 +59,18 @@ class SpringOpenApiReaderTest {
         Assertions.assertThat(parameters).hasSize(1);
         Assertions.assertThat(Iterables.getOnlyElement(parameters).getName()).isEqualTo("propertyPath");
     }
+
+    @ParameterizedTest
+    @CsvSource({
+            "RestWithBodyController, /login, " + DEFAULT_MEDIA_TYPE_VALUE,
+            "RestWithConsumesController, /consumeSameAsClass, " + MediaType.APPLICATION_XML_VALUE,
+            "RestWithConsumesController, /consumeStream, " + MediaType.APPLICATION_OCTET_STREAM_VALUE,
+    })
+    void should_read_request_body(String ctrlClass, String route, String mediaType) throws ClassNotFoundException {
+        OpenAPI actual = tested.read(Class.forName("fr.irun.openapi.swagger.samples." + ctrlClass));
+        Assertions.assertThat(actual).isNotNull();
+        Content content = actual.getPaths().get(route).getPost().getRequestBody().getContent();
+        Assertions.assertThat(content.keySet()).containsExactly(mediaType);
+    }
+
 }
