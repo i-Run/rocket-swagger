@@ -3,7 +3,6 @@ package fr.irun.openapi.swagger.utils;
 import com.fasterxml.jackson.databind.type.TypeBase;
 import io.swagger.v3.core.converter.AnnotatedType;
 
-import java.lang.reflect.Type;
 import java.util.Optional;
 
 final class VisitableTypeBase implements VisitableGenericType {

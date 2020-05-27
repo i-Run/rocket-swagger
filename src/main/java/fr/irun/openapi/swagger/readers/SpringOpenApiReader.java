@@ -10,6 +10,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import fr.irun.openapi.swagger.utils.IgnoredTypes;
+import fr.irun.openapi.swagger.writers.DefinitionWriter;
+import fr.irun.openapi.swagger.writers.SecuritySchemeWriter;
 import io.swagger.v3.core.converter.AnnotatedType;
 import io.swagger.v3.core.converter.ModelConverters;
 import io.swagger.v3.core.converter.ResolvedSchema;
@@ -20,7 +22,6 @@ import io.swagger.v3.core.util.PathUtils;
 import io.swagger.v3.core.util.ReflectionUtils;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Hidden;
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.integration.ContextUtils;
 import io.swagger.v3.oas.integration.SwaggerConfiguration;
@@ -41,11 +42,9 @@ import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
-import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.http.HttpStatus;
@@ -76,19 +75,11 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class SpringOpenApiReader implements OpenApiReader {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SpringOpenApiReader.class);
-
     public static final String DEFAULT_MEDIA_TYPE_VALUE = org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
     public static final String DEFAULT_DESCRIPTION = "successful operation";
     public static final String DEFAULT_RESPONSE_STATUS = Integer.toString(HttpStatus.OK.value());
-
-    protected OpenAPIConfiguration config;
-
-    private OpenAPI openAPI;
-    private Components components;
-    private Paths paths;
-    private Set<Tag> openApiTags;
 
     private static final String GET_METHOD = "get";
     private static final String POST_METHOD = "post";
@@ -98,6 +89,12 @@ public class SpringOpenApiReader implements OpenApiReader {
     private static final String TRACE_METHOD = "trace";
     private static final String HEAD_METHOD = "head";
     private static final String OPTIONS_METHOD = "options";
+
+    private final Paths paths;
+    private final Set<Tag> openApiTags;
+    private OpenAPIConfiguration config;
+    private OpenAPI openAPI;
+    private Components components;
 
     public SpringOpenApiReader() {
         this.openAPI = new OpenAPI();
@@ -111,21 +108,28 @@ public class SpringOpenApiReader implements OpenApiReader {
         setConfiguration(new SwaggerConfiguration().openAPI(openAPI));
     }
 
+    @SuppressWarnings("unused")
     public SpringOpenApiReader(OpenAPIConfiguration openApiConfiguration) {
         this();
         setConfiguration(openApiConfiguration);
     }
 
+    @SuppressWarnings("unused")
     public OpenAPI getOpenAPI() {
         return openAPI;
     }
 
     /**
      * Scans a single class for Swagger annotations - does not invoke ReaderListeners
+     *
+     * @param cls The {@code Class} object to analyze
+     * @return the {@link OpenAPI} result object
      */
     public OpenAPI read(Class<?> cls) {
-        LOGGER.debug("read single class");
-        return read(cls, resolveApplicationPath(), null, false, null, null, new LinkedHashSet<String>(), new ArrayList<Parameter>(), new HashSet<Class<?>>());
+        log.debug("read single class");
+        return read(cls, resolveApplicationPath(),
+                null, false, null, null,
+                Collections.emptySet(), Collections.emptyList(), Collections.emptySet());
     }
 
     /**
@@ -137,8 +141,8 @@ public class SpringOpenApiReader implements OpenApiReader {
      * @return the generated OpenAPI definition
      */
     public OpenAPI read(Set<Class<?>> classes) {
-        LOGGER.debug("read multiple classes");
-        LOGGER.debug("classes: {}", classes);
+        log.debug("read multiple classes");
+        log.debug("classes: {}", classes);
         Set<Class<?>> sortedClasses = new TreeSet<>((class1, class2) -> {
             if (class1.equals(class2)) {
                 return 0;
@@ -158,7 +162,7 @@ public class SpringOpenApiReader implements OpenApiReader {
                 try {
                     listeners.put(cls, (ReaderListener) cls.newInstance());
                 } catch (Exception e) {
-                    LOGGER.error("Failed to create ReaderListener", e);
+                    log.error("Failed to create ReaderListener", e);
                 }
             }
         }
@@ -167,7 +171,7 @@ public class SpringOpenApiReader implements OpenApiReader {
             try {
                 listener.beforeScan(this, openAPI);
             } catch (Exception e) {
-                LOGGER.error("Unexpected error invoking beforeScan listener [" + listener.getClass().getName() + "]", e);
+                log.error("Unexpected error invoking beforeScan listener [" + listener.getClass().getName() + "]", e);
             }
         }
 
@@ -179,7 +183,7 @@ public class SpringOpenApiReader implements OpenApiReader {
             try {
                 listener.afterScan(this, openAPI);
             } catch (Exception e) {
-                LOGGER.error("Unexpected error invoking afterScan listener [" + listener.getClass().getName() + "]", e);
+                log.error("Unexpected error invoking afterScan listener [" + listener.getClass().getName() + "]", e);
             }
         }
         return openAPI;
@@ -199,12 +203,12 @@ public class SpringOpenApiReader implements OpenApiReader {
     }
 
     public OpenAPI read(Set<Class<?>> classes, Map<String, Object> resources) {
-        LOGGER.debug("read multiple classes with resources...");
+        log.debug("read multiple classes with resources...");
         return read(classes);
     }
 
     protected String resolveApplicationPath() {
-        LOGGER.debug("resolveApplicationPath ...");
+        log.debug("resolveApplicationPath ...");
         return "";
     }
 
@@ -218,7 +222,7 @@ public class SpringOpenApiReader implements OpenApiReader {
                         List<Parameter> parentParameters,
                         Set<Class<?>> scannedResources) {
 
-        LOGGER.debug("read class {}, parentPath: {}, parentMethod: {} ...", cls, parentPath, parentMethod);
+        log.debug("read class {}, parentPath: {}, parentMethod: {} ...", cls, parentPath, parentMethod);
 
         Hidden hidden = cls.getAnnotation(Hidden.class);
 
@@ -228,64 +232,20 @@ public class SpringOpenApiReader implements OpenApiReader {
             return openAPI;
         }
 
-        io.swagger.v3.oas.annotations.responses.ApiResponse[] classResponses = ReflectionUtils.getRepeatableAnnotationsArray(cls, io.swagger.v3.oas.annotations.responses.ApiResponse.class);
+        io.swagger.v3.oas.annotations.responses.ApiResponse[] classResponses =
+                ReflectionUtils.getRepeatableAnnotationsArray(cls, io.swagger.v3.oas.annotations.responses.ApiResponse.class);
 
-        List<io.swagger.v3.oas.annotations.security.SecurityScheme> apiSecurityScheme = ReflectionUtils.getRepeatableAnnotations(cls, io.swagger.v3.oas.annotations.security.SecurityScheme.class);
-        List<io.swagger.v3.oas.annotations.security.SecurityRequirement> apiSecurityRequirements = ReflectionUtils.getRepeatableAnnotations(cls, io.swagger.v3.oas.annotations.security.SecurityRequirement.class);
+        List<io.swagger.v3.oas.annotations.security.SecurityRequirement> apiSecurityRequirements =
+                ReflectionUtils.getRepeatableAnnotations(cls, io.swagger.v3.oas.annotations.security.SecurityRequirement.class);
 
         ExternalDocumentation apiExternalDocs = ReflectionUtils.getAnnotation(cls, ExternalDocumentation.class);
-        io.swagger.v3.oas.annotations.tags.Tag[] apiTags = ReflectionUtils.getRepeatableAnnotationsArray(cls, io.swagger.v3.oas.annotations.tags.Tag.class);
-        io.swagger.v3.oas.annotations.servers.Server[] apiServers = ReflectionUtils.getRepeatableAnnotationsArray(cls, io.swagger.v3.oas.annotations.servers.Server.class);
+        io.swagger.v3.oas.annotations.tags.Tag[] apiTags =
+                ReflectionUtils.getRepeatableAnnotationsArray(cls, io.swagger.v3.oas.annotations.tags.Tag.class);
+        io.swagger.v3.oas.annotations.servers.Server[] apiServers =
+                ReflectionUtils.getRepeatableAnnotationsArray(cls, io.swagger.v3.oas.annotations.servers.Server.class);
 
-        OpenAPIDefinition openAPIDefinition = ReflectionUtils.getAnnotation(cls, OpenAPIDefinition.class);
-
-        if (openAPIDefinition != null) {
-
-            AnnotationsUtils.getInfo(openAPIDefinition.info()).ifPresent(info -> openAPI.setInfo(info));
-
-            // OpenApiDefinition security requirements
-            SecurityParser
-                    .getSecurityRequirements(openAPIDefinition.security())
-                    .ifPresent(s -> openAPI.setSecurity(s));
-            //
-            // OpenApiDefinition external docs
-            AnnotationsUtils
-                    .getExternalDocumentation(openAPIDefinition.externalDocs())
-                    .ifPresent(docs -> openAPI.setExternalDocs(docs));
-
-            // OpenApiDefinition tags
-            AnnotationsUtils
-                    .getTags(openAPIDefinition.tags(), false)
-                    .ifPresent(tags -> openApiTags.addAll(tags));
-
-            // OpenApiDefinition servers
-            AnnotationsUtils.getServers(openAPIDefinition.servers()).ifPresent(servers -> openAPI.setServers(servers));
-
-            // OpenApiDefinition extensions
-            if (openAPIDefinition.extensions().length > 0) {
-                openAPI.setExtensions(AnnotationsUtils
-                        .getExtensions(openAPIDefinition.extensions()));
-            }
-
-        }
-
-        // class security schemes
-        if (apiSecurityScheme != null) {
-            for (io.swagger.v3.oas.annotations.security.SecurityScheme securitySchemeAnnotation : apiSecurityScheme) {
-                Optional<SecurityParser.SecuritySchemePair> securityScheme = SecurityParser.getSecurityScheme(securitySchemeAnnotation);
-                if (securityScheme.isPresent()) {
-                    Map<String, SecurityScheme> securitySchemeMap = new HashMap<>();
-                    if (StringUtils.isNotBlank(securityScheme.get().key)) {
-                        securitySchemeMap.put(securityScheme.get().key, securityScheme.get().securityScheme);
-                        if (components.getSecuritySchemes() != null && components.getSecuritySchemes().size() != 0) {
-                            components.getSecuritySchemes().putAll(securitySchemeMap);
-                        } else {
-                            components.setSecuritySchemes(securitySchemeMap);
-                        }
-                    }
-                }
-            }
-        }
+        new DefinitionWriter(openAPI).write(cls);
+        new SecuritySchemeWriter(openAPI).write(cls);
 
         // class security requirements
         List<SecurityRequirement> classSecurityRequirements = new ArrayList<>();
@@ -397,12 +357,12 @@ public class SpringOpenApiReader implements OpenApiReader {
                                             .anyMatch(annotation ->
                                                     annotation.annotationType()
                                                             .equals(io.swagger.v3.oas.annotations.parameters.RequestBody.class)
-                                            )
-                            ).flatMap(Arrays::stream)
+                                            ))
+                            .flatMap(Arrays::stream)
                             .filter(annotation ->
                                     annotation.annotationType()
-                                            .equals(JsonView.class)
-                            ).reduce((a, b) -> null)
+                                            .equals(JsonView.class))
+                            .reduce((a, b) -> null)
                             .orElse(jsonViewAnnotation);
                 }
 
@@ -1232,10 +1192,10 @@ public class SpringOpenApiReader implements OpenApiReader {
         if (!chain.hasNext()) {
             return new ResolvedParameter();
         }
-        LOGGER.debug("getParameters for {}", type);
+        log.debug("getParameters for {}", type);
         Set<Type> typesToSkip = new HashSet<>();
         final OpenAPIExtension extension = chain.next();
-        LOGGER.debug("trying extension {}", extension);
+        log.debug("trying extension {}", extension);
 
         final ResolvedParameter extractParametersResult = extension.extractParameters(annotations, type, typesToSkip, components, classConsumes, methodConsumes, true, jsonViewAnnotation, chain);
         return extractParametersResult;
@@ -1376,7 +1336,7 @@ public class SpringOpenApiReader implements OpenApiReader {
             final ParameterizedType parameterized = (ParameterizedType) cls;
             final Type[] args = parameterized.getActualTypeArguments();
             if (args.length != 1) {
-                LOGGER.error("Unexpected class definition: {}", cls);
+                log.error("Unexpected class definition: {}", cls);
                 return null;
             }
             final Type first = args[0];
@@ -1386,7 +1346,7 @@ public class SpringOpenApiReader implements OpenApiReader {
                 return null;
             }
         } else {
-            LOGGER.error("Unknown class definition: {}", cls);
+            log.error("Unknown class definition: {}", cls);
             return null;
         }
     }
