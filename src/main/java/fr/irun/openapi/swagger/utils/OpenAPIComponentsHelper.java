@@ -22,29 +22,6 @@ import java.util.function.Function;
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class OpenAPIComponentsHelper<T> {
-    private final Class<T> clazz;
-    private final Function<Components, Map<String, T>> getter;
-    private final BiConsumer<Components, Map<String, T>> setter;
-
-    public Map<String, T> newMap() {
-        return Maps.newHashMap();
-    }
-
-    public void mergeComponents(Components merged, Components... components) {
-        Map<String, T> accu = Optional.ofNullable(getter.apply(merged)).orElseGet(Maps::newHashMap);
-
-        for (Components component : components) {
-            if (component == null) {
-                continue;
-            }
-            Map<String, T> apply = Optional.ofNullable(getter.apply(component)).orElseGet(Maps::newHashMap);
-            accu.putAll(apply);
-        }
-        if (!accu.isEmpty()) {
-            setter.accept(merged, accu);
-        }
-    }
-
     public static final OpenAPIComponentsHelper<Schema> SCHEMAS =
             new OpenAPIComponentsHelper<>(Schema.class, Components::getSchemas, Components::setSchemas);
     public static final OpenAPIComponentsHelper<ApiResponse> API_RESPONSES =
@@ -69,6 +46,29 @@ public class OpenAPIComponentsHelper<T> {
     public static final ImmutableList<OpenAPIComponentsHelper<?>> ALL_COMPONENTS_TYPE = ImmutableList.of(
             SCHEMAS, API_RESPONSES, PARAMETERS, EXAMPLES, REQUEST_BODIES, HEADERS, SECURITY_SCHEMES, LINKS, CALLBACKS, EXTENSIONS
     );
+
+    private final Class<T> clazz;
+    private final Function<Components, Map<String, T>> getter;
+    private final BiConsumer<Components, Map<String, T>> setter;
+
+    public Map<String, T> newMap() {
+        return Maps.newHashMap();
+    }
+
+    public void mergeComponents(Components merged, Components... components) {
+        Map<String, T> accu = Optional.ofNullable(getter.apply(merged)).orElseGet(Maps::newHashMap);
+
+        for (Components component : components) {
+            if (component == null) {
+                continue;
+            }
+            Map<String, T> apply = Optional.ofNullable(getter.apply(component)).orElseGet(Maps::newHashMap);
+            accu.putAll(apply);
+        }
+        if (!accu.isEmpty()) {
+            setter.accept(merged, accu);
+        }
+    }
 
     public static Components mergeAllComponents(Components... toBeMerge) {
         Components components = new Components();

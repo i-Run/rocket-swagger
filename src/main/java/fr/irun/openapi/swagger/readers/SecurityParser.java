@@ -22,7 +22,7 @@ public class SecurityParser {
         public SecurityScheme securityScheme;
     }
 
-    public static Optional<List<SecurityRequirement>> getSecurityRequirements(io.swagger.v3.oas.annotations.security.SecurityRequirement[] securityRequirementsApi) {
+    public static Optional<List<SecurityRequirement>> getSecurityRequirements(io.swagger.v3.oas.annotations.security.SecurityRequirement... securityRequirementsApi) {
         if (securityRequirementsApi == null || securityRequirementsApi.length == 0) {
             return Optional.empty();
         }

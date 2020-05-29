@@ -9,6 +9,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import fr.irun.openapi.swagger.utils.OpenAPIComponentsHelper;
 import fr.irun.openapi.swagger.utils.ReaderUtils;
 import io.swagger.v3.core.converter.AnnotatedType;
@@ -212,15 +213,10 @@ public class SpringOpenApiReader implements OpenApiReader {
         return "";
     }
 
-    public OpenAPI read(Class<?> cls,
-                        String parentPath,
-                        String parentMethod,
-                        boolean isSubresource,
-                        RequestBody parentRequestBody,
-                        ApiResponses parentResponses,
-                        Set<String> parentTags,
-                        List<Parameter> parentParameters,
-                        Set<Class<?>> scannedResources) {
+    public OpenAPI read(
+            Class<?> cls, String parentPath, String parentMethod, boolean isSubresource,
+            RequestBody parentRequestBody, ApiResponses parentResponses, Set<String> parentTags,
+            List<Parameter> parentParameters, Set<Class<?>> scannedResources) {
 
         log.debug("read class {}, parentPath: {}, parentMethod: {} ...", cls, parentPath, parentMethod);
 
@@ -235,12 +231,7 @@ public class SpringOpenApiReader implements OpenApiReader {
         io.swagger.v3.oas.annotations.responses.ApiResponse[] classResponses =
                 ReflectionUtils.getRepeatableAnnotationsArray(cls, io.swagger.v3.oas.annotations.responses.ApiResponse.class);
 
-        List<io.swagger.v3.oas.annotations.security.SecurityRequirement> apiSecurityRequirements =
-                ReflectionUtils.getRepeatableAnnotations(cls, io.swagger.v3.oas.annotations.security.SecurityRequirement.class);
-
         ExternalDocumentation apiExternalDocs = ReflectionUtils.getAnnotation(cls, ExternalDocumentation.class);
-        io.swagger.v3.oas.annotations.tags.Tag[] apiTags =
-                ReflectionUtils.getRepeatableAnnotationsArray(cls, io.swagger.v3.oas.annotations.tags.Tag.class);
         io.swagger.v3.oas.annotations.servers.Server[] apiServers =
                 ReflectionUtils.getRepeatableAnnotationsArray(cls, io.swagger.v3.oas.annotations.servers.Server.class);
 
@@ -250,17 +241,16 @@ public class SpringOpenApiReader implements OpenApiReader {
                 .forEach(components::addSecuritySchemes);
 
         // class security requirements
-        List<SecurityRequirement> classSecurityRequirements = new ArrayList<>();
-        if (apiSecurityRequirements != null) {
-            Optional<List<SecurityRequirement>> requirementsObject = SecurityParser.getSecurityRequirements(
-                    apiSecurityRequirements.toArray(new io.swagger.v3.oas.annotations.security.SecurityRequirement[0])
-            );
-            if (requirementsObject.isPresent()) {
-                classSecurityRequirements = requirementsObject.get();
-            }
-        }
+        List<io.swagger.v3.oas.annotations.security.SecurityRequirement> apiSecurityRequirements =
+                ReflectionUtils.getRepeatableAnnotations(cls, io.swagger.v3.oas.annotations.security.SecurityRequirement.class);
+        List<SecurityRequirement> classSecurityRequirements = Optional.ofNullable(apiSecurityRequirements)
+                .map(Iterables::getOnlyElement)
+                .flatMap(SecurityParser::getSecurityRequirements)
+                .orElseGet(Collections::emptyList);
 
         // class tags, consider only name to add to class operations
+        io.swagger.v3.oas.annotations.tags.Tag[] apiTags =
+                ReflectionUtils.getRepeatableAnnotationsArray(cls, io.swagger.v3.oas.annotations.tags.Tag.class);
         final Set<String> classTags = new LinkedHashSet<>();
         if (apiTags != null) {
             AnnotationsUtils.getTags(apiTags, false).ifPresent(tags ->
@@ -353,117 +343,67 @@ public class SpringOpenApiReader implements OpenApiReader {
                     /* If one and only one exists, use the @JsonView annotation from the method parameter annotated
                        with @RequestBody. Otherwise fall back to the @JsonView annotation for the method itself. */
                     jsonViewAnnotationForRequestBody = (JsonView) Arrays.stream(ReflectionUtils.getParameterAnnotations(method))
-                            .filter(arr ->
-                                    Arrays.stream(arr)
-                                            .anyMatch(annotation ->
-                                                    annotation.annotationType()
-                                                            .equals(io.swagger.v3.oas.annotations.parameters.RequestBody.class)
-                                            ))
+                            .filter(arr -> Arrays.stream(arr).anyMatch(annotation ->
+                                    annotation.annotationType()
+                                            .equals(io.swagger.v3.oas.annotations.parameters.RequestBody.class)
+                            ))
                             .flatMap(Arrays::stream)
                             .filter(annotation ->
-                                    annotation.annotationType()
-                                            .equals(JsonView.class))
-                            .reduce((a, b) -> null)
+                                    annotation.annotationType().equals(JsonView.class))
+                            .reduce((a, b) -> jsonViewAnnotation)
                             .orElse(jsonViewAnnotation);
                 }
 
                 Operation operation = parseMethod(
-                        method,
-                        globalParameters,
-                        methodRequestMapping,
-                        apiRequestMapping,
-                        classSecurityRequirements,
-                        classExternalDocumentation,
-                        classTags,
-                        classServers,
-                        isSubresource,
-                        parentRequestBody,
-                        parentResponses,
-                        jsonViewAnnotation,
-                        classResponses,
-                        annotatedMethod);
+                        method, globalParameters, methodRequestMapping, apiRequestMapping, classSecurityRequirements,
+                        classExternalDocumentation, classTags, classServers, isSubresource, parentRequestBody,
+                        parentResponses, jsonViewAnnotation, classResponses, annotatedMethod);
+
                 if (operation != null) {
 
                     List<Parameter> operationParameters = new ArrayList<>();
                     List<Parameter> formParameters = new ArrayList<>();
-                    Annotation[][] paramAnnotations = ReflectionUtils.getParameterAnnotations(method);
-                    if (annotatedMethod == null) { // annotatedMethod not null only when method with 0-2 parameters
-                        Type[] genericParameterTypes = method.getGenericParameterTypes();
-                        for (int i = 0; i < genericParameterTypes.length; i++) {
-                            final Type type = TypeFactory.defaultInstance().constructType(genericParameterTypes[i], cls);
-                            io.swagger.v3.oas.annotations.Parameter paramAnnotation = AnnotationsUtils.getAnnotation(io.swagger.v3.oas.annotations.Parameter.class, paramAnnotations[i]);
-                            Type paramType = ParameterProcessor.getParameterType(paramAnnotation, true);
-                            if (paramType == null) {
+                    for (java.lang.reflect.Parameter parameter : method.getParameters()) {
+                        Type parameterizedType = parameter.getParameterizedType();
+
+                        final Type type = TypeFactory.defaultInstance().constructType(parameterizedType, cls);
+                        ImmutableSet<Class<? extends Annotation>> annotationTypes = ImmutableSet.of(RequestParam.class, PathVariable.class, MatrixVariable.class, RequestHeader.class, CookieValue.class);
+                        Set<Annotation> annotations = annotationTypes.stream()
+                                .map(at -> AnnotatedElementUtils.findMergedAnnotation(parameter, at))
+                                .filter(Objects::nonNull)
+                                .map(a -> {
+                                    Object value = AnnotationUtils.getValue(a, "value");
+                                    if (value == null || Strings.isNullOrEmpty(value.toString())) {
+                                        return AnnotationUtils.synthesizeAnnotation(ImmutableMap.of("value", parameter.getName()), a.annotationType(), parameter);
+                                    } else {
+                                        return a;
+                                    }
+                                }).collect(Collectors.toSet());
+
+                        io.swagger.v3.oas.annotations.Parameter paramAnnotation = AnnotationUtils.getAnnotation(parameter, io.swagger.v3.oas.annotations.Parameter.class);
+                        if (paramAnnotation != null) {
+                            annotations.add(paramAnnotation);
+                        }
+
+                        Type paramType = ParameterProcessor.getParameterType(paramAnnotation, true);
+                        if (paramType == null) {
+                            paramType = type;
+                        } else {
+                            if (!(paramType instanceof Class)) {
                                 paramType = type;
-                            } else {
-                                if (!(paramType instanceof Class)) {
-                                    paramType = type;
-                                }
-                            }
-                            ResolvedParameter resolvedParameter = getParameters(paramType, Arrays.asList(paramAnnotations[i]), operation, apiRequestMapping, methodRequestMapping, jsonViewAnnotation);
-                            operationParameters.addAll(resolvedParameter.parameters);
-                            // collect params to use together as request Body
-                            formParameters.addAll(resolvedParameter.formParameters);
-                            if (resolvedParameter.requestBody != null) {
-                                processRequestBody(
-                                        resolvedParameter.requestBody,
-                                        operation,
-                                        methodRequestMapping,
-                                        apiRequestMapping,
-                                        operationParameters,
-                                        paramAnnotations[i],
-                                        type,
-                                        jsonViewAnnotationForRequestBody);
                             }
                         }
-                    } else {
-                        for (java.lang.reflect.Parameter parameter : method.getParameters()) {
-                            Type parameterizedType = parameter.getParameterizedType();
-
-                            final Type type = TypeFactory.defaultInstance().constructType(parameterizedType, cls);
-                            ImmutableSet<Class<? extends Annotation>> annotationTypes = ImmutableSet.of(RequestParam.class, PathVariable.class, MatrixVariable.class, RequestHeader.class, CookieValue.class);
-                            Set<Annotation> annotations = annotationTypes.stream()
-                                    .map(at -> AnnotatedElementUtils.findMergedAnnotation(parameter, at))
-                                    .filter(Objects::nonNull)
-                                    .map(a -> {
-                                        Object value = AnnotationUtils.getValue(a, "value");
-                                        if (value == null || Strings.isNullOrEmpty(value.toString())) {
-                                            return AnnotationUtils.synthesizeAnnotation(ImmutableMap.of("value", parameter.getName()), a.annotationType(), parameter);
-                                        } else {
-                                            return a;
-                                        }
-                                    }).collect(Collectors.toSet());
-
-                            io.swagger.v3.oas.annotations.Parameter paramAnnotation = AnnotationUtils.getAnnotation(parameter, io.swagger.v3.oas.annotations.Parameter.class);
-                            if (paramAnnotation != null) {
-                                annotations.add(paramAnnotation);
-                            }
-
-                            Type paramType = ParameterProcessor.getParameterType(paramAnnotation, true);
-                            if (paramType == null) {
-                                paramType = type;
-                            } else {
-                                if (!(paramType instanceof Class)) {
-                                    paramType = type;
-                                }
-                            }
-                            ResolvedParameter resolvedParameter = getParameters(paramType, ImmutableList.copyOf(annotations), operation, apiRequestMapping, methodRequestMapping, jsonViewAnnotation);
-                            operationParameters.addAll(resolvedParameter.parameters);
-                            // collect params to use together as request Body
-                            formParameters.addAll(resolvedParameter.formParameters);
-                            if (resolvedParameter.requestBody != null) {
-                                processRequestBody(
-                                        resolvedParameter.requestBody,
-                                        operation,
-                                        methodRequestMapping,
-                                        apiRequestMapping,
-                                        operationParameters,
-                                        parameter.getDeclaredAnnotations(),
-                                        type,
-                                        jsonViewAnnotationForRequestBody);
-                            }
+                        ResolvedParameter resolvedParameter = getParameters(paramType, ImmutableList.copyOf(annotations), operation, apiRequestMapping, methodRequestMapping, jsonViewAnnotation);
+                        operationParameters.addAll(resolvedParameter.parameters);
+                        // collect params to use together as request Body
+                        formParameters.addAll(resolvedParameter.formParameters);
+                        if (resolvedParameter.requestBody != null) {
+                            processRequestBody(
+                                    resolvedParameter.requestBody, operation, methodRequestMapping, apiRequestMapping,
+                                    operationParameters, parameter.getDeclaredAnnotations(), type, jsonViewAnnotationForRequestBody);
                         }
                     }
+
                     // if we have form parameters, need to merge them into single schema and use as request body..
                     if (formParameters.size() > 0) {
                         Schema<?> mergedSchema = new ObjectSchema();
@@ -475,14 +415,8 @@ public class SpringOpenApiReader implements OpenApiReader {
                         }
                         Parameter merged = new Parameter().schema(mergedSchema);
                         processRequestBody(
-                                merged,
-                                operation,
-                                methodRequestMapping,
-                                apiRequestMapping,
-                                operationParameters,
-                                new Annotation[0],
-                                null,
-                                jsonViewAnnotationForRequestBody);
+                                merged, operation, methodRequestMapping, apiRequestMapping, operationParameters,
+                                new Annotation[0], null, jsonViewAnnotationForRequestBody);
 
                     }
                     if (operationParameters.size() > 0) {

@@ -1,14 +1,13 @@
 package fr.irun.openapi.swagger.utils;
 
 import com.fasterxml.jackson.annotation.JsonView;
-import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import fr.irun.openapi.swagger.readers.OpenAPIExtension;
 import fr.irun.openapi.swagger.readers.OpenAPIExtensions;
 import io.swagger.v3.core.util.ParameterProcessor;
 import io.swagger.v3.core.util.ReflectionUtils;
 import io.swagger.v3.oas.integration.api.OpenAPIConfiguration;
 import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -25,13 +24,11 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
-public class ReaderUtils {
+public final class ReaderUtils {
     private static final String PATH_DELIMITER = "/";
 
     private ReaderUtils() {
@@ -40,11 +37,15 @@ public class ReaderUtils {
     /**
      * Collects constructor-level parameters from class.
      *
-     * @param cls        is a class for collecting
-     * @param components OpenAPI Components
+     * @param cls                is a class for collecting
+     * @param components         OpenAPI Components
+     * @param classConsumes      {@link RequestMapping} annotation from the read class
+     * @param jsonViewAnnotation {@link JsonView} annotation from the read class
      * @return the collection of supported parameters
      */
-    public static List<Parameter> collectConstructorParameters(Class<?> cls, Components components, RequestMapping classConsumes, JsonView jsonViewAnnotation) {
+    public static List<Parameter> collectConstructorParameters(
+            Class<?> cls, Components components, RequestMapping classConsumes, JsonView jsonViewAnnotation) {
+
         if (cls.isLocalClass() || (cls.isMemberClass() && !Modifier.isStatic(cls.getModifiers()))) {
             return Collections.emptyList();
         }
@@ -69,7 +70,8 @@ public class ReaderUtils {
                     paramsCount++;
                 } else {
                     final Type genericParameterType = genericParameterTypes[i];
-                    final List<Parameter> tmpParameters = collectParameters(genericParameterType, tmpAnnotations, components, classConsumes, jsonViewAnnotation);
+                    final List<Parameter> tmpParameters = collectParameters(
+                            genericParameterType, tmpAnnotations, components, classConsumes, jsonViewAnnotation);
                     if (tmpParameters.size() >= 1) {
                         for (Parameter tmpParameter : tmpParameters) {
                             Parameter processedParameter = ParameterProcessor.applyAnnotations(
@@ -101,11 +103,14 @@ public class ReaderUtils {
     /**
      * Collects field-level parameters from class.
      *
-     * @param cls        is a class for collecting
-     * @param components OpenAPI Components
+     * @param cls                is a class for collecting
+     * @param components         OpenAPI Components
+     * @param classConsumes      {@link RequestMapping} annotation from the read class
+     * @param jsonViewAnnotation {@link JsonView} annotation from the read class
      * @return the collection of supported parameters
      */
-    public static List<Parameter> collectFieldParameters(Class<?> cls, Components components, RequestMapping classConsumes, JsonView jsonViewAnnotation) {
+    public static List<Parameter> collectFieldParameters(
+            Class<?> cls, Components components, RequestMapping classConsumes, JsonView jsonViewAnnotation) {
         final List<Parameter> parameters = new ArrayList<>();
         for (Field field : ReflectionUtils.getDeclaredFields(cls)) {
             final List<Annotation> annotations = Arrays.asList(field.getAnnotations());
@@ -115,10 +120,14 @@ public class ReaderUtils {
         return parameters;
     }
 
-    private static List<Parameter> collectParameters(Type type, List<Annotation> annotations, Components components, RequestMapping classConsumes, JsonView jsonViewAnnotation) {
+    private static List<Parameter> collectParameters(
+            Type type, List<Annotation> annotations, Components components, RequestMapping classConsumes, JsonView jsonViewAnnotation) {
         final Iterator<OpenAPIExtension> chain = OpenAPIExtensions.chain();
-        return chain.hasNext() ? chain.next().extractParameters(annotations, type, new HashSet<>(), components, classConsumes, null, false, jsonViewAnnotation, chain).parameters :
-                Collections.emptyList();
+        return chain.hasNext()
+                ? chain.next().extractParameters(
+                annotations, type, Sets.newHashSet(), components, classConsumes, null, false, jsonViewAnnotation, chain)
+                .parameters
+                : Collections.emptyList();
     }
 
     private static boolean isContext(List<Annotation> annotations) {
@@ -161,7 +170,8 @@ public class ReaderUtils {
         return false;
     }
 
-    public static String getPath(RequestMapping classLevelPath, RequestMapping methodLevelPath, String parentPath, boolean isSubresource) {
+    public static String getPath(
+            RequestMapping classLevelPath, RequestMapping methodLevelPath, String parentPath, boolean isSubresource) {
         if (classLevelPath == null && methodLevelPath == null && StringUtils.isEmpty(parentPath)) {
             return null;
         }
@@ -177,7 +187,7 @@ public class ReaderUtils {
                 appendPathComponent(methodLevelPath.path()[0], b);
             }
         }
-        return b.length() == 0 ? "/" : b.toString();
+        return b.length() == 0 ? PATH_DELIMITER : b.toString();
     }
 
     /**
@@ -192,13 +202,13 @@ public class ReaderUtils {
      * @param to        output
      */
     private static void appendPathComponent(String component, StringBuilder to) {
-        if (component == null || component.isEmpty() || "/".equals(component)) {
+        if (component == null || component.isEmpty() || PATH_DELIMITER.equals(component)) {
             return;
         }
-        if (!component.startsWith("/") && (to.length() == 0 || '/' != to.charAt(to.length() - 1))) {
-            to.append("/");
+        if (!component.startsWith(PATH_DELIMITER) && (to.length() == 0 || PATH_DELIMITER.charAt(0) != to.charAt(to.length() - 1))) {
+            to.append(PATH_DELIMITER);
         }
-        if (component.endsWith("/")) {
+        if (component.endsWith(PATH_DELIMITER)) {
             to.append(component, 0, component.length() - 1);
         } else {
             to.append(component);
