@@ -143,15 +143,6 @@ public class DefaultParameterExtension extends AbstractOpenAPIExtension {
         return extractParametersResult;
     }
 
-    /**
-     * Adds additional annotation processing support
-     *
-     * @param parameters
-     * @param annotation
-     * @param type
-     * @param typesToSkip
-     */
-
     private boolean handleAdditionalAnnotation(List<Parameter> parameters, List<Parameter> formParameters, Annotation annotation,
                                                final Type type, Set<Type> typesToSkip, RequestMapping classConsumes,
                                                RequestMapping methodConsumes, Components components, boolean includeRequestBody, JsonView jsonViewAnnotation) {

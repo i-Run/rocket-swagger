@@ -1,6 +1,7 @@
 package fr.irun.openapi.swagger.readers;
 
 import com.google.common.collect.Iterators;
+import fr.irun.openapi.swagger.utils.ReaderUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;

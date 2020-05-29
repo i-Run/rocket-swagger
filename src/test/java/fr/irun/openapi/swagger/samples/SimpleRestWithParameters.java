@@ -38,4 +38,10 @@ public final class SimpleRestWithParameters {
             @PathVariable("propertyPath") String property) {
         return Lists.list(property);
     }
+
+    @GetMapping("/methodWithMoreThanTwoParameters/{param1}/{param2}/{param3}")
+    public List<String> methodWithMoreThanTwoParameters(
+            @PathVariable("param1") String param1, @PathVariable("param2") String param2, @PathVariable("param3") String param3) {
+        return Lists.list(param1, param2, param3);
+    }
 }

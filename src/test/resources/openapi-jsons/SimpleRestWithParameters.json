@@ -5,6 +5,34 @@
     "version" : "1.0.0"
   },
   "paths" : {
+    "/parameterWithoutAnnotation/{propertyPath}" : {
+      "get" : {
+        "operationId" : "parameterWithoutAnnotation",
+        "parameters" : [ {
+          "name" : "propertyPath",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/namedParameterWithoutAnnotation/{propertyPath}" : {
       "get" : {
         "operationId" : "namedParameterWithoutAnnotation",
@@ -90,11 +118,25 @@
         }
       }
     },
-    "/parameterWithoutAnnotation/{propertyPath}" : {
+    "/methodWithMoreThanTwoParameters/{param1}/{param2}/{param3}" : {
       "get" : {
-        "operationId" : "parameterWithoutAnnotation",
+        "operationId" : "methodWithMoreThanTwoParameters",
         "parameters" : [ {
-          "name" : "propertyPath",
+          "name" : "param1",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "param2",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "param3",
           "in" : "path",
           "required" : true,
           "schema" : {

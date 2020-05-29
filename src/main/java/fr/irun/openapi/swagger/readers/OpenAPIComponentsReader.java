@@ -1,26 +1,20 @@
-package fr.irun.openapi.swagger.writers;
+package fr.irun.openapi.swagger.readers;
 
 import com.google.common.base.Strings;
-import fr.irun.openapi.swagger.readers.SecurityParser;
+import fr.irun.openapi.swagger.utils.OpenAPIComponentsHelper;
 import io.swagger.v3.core.util.ReflectionUtils;
-import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.security.SecurityScheme;
-import lombok.AllArgsConstructor;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 import java.util.Map;
 
-@AllArgsConstructor
-public final class SecuritySchemeWriter {
-    private final OpenAPI output;
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class OpenAPIComponentsReader {
 
-    public Map<String, SecurityScheme> write(Class<?> clazz) {
-        if (output.getComponents() == null) {
-            output.setComponents(new Components());
-        }
-        Components components = output.getComponents();
-
+    public static Map<String, SecurityScheme> readSecuritySchemes(Class<?> clazz) {
+        Map<String, SecurityScheme> schemes = OpenAPIComponentsHelper.SECURITY_SCHEMES.newMap();
         List<io.swagger.v3.oas.annotations.security.SecurityScheme> apiSecurityScheme =
                 ReflectionUtils.getRepeatableAnnotations(clazz, io.swagger.v3.oas.annotations.security.SecurityScheme.class);
 
@@ -28,10 +22,10 @@ public final class SecuritySchemeWriter {
             for (io.swagger.v3.oas.annotations.security.SecurityScheme securitySchemeAnnotation : apiSecurityScheme) {
                 SecurityParser.getSecurityScheme(securitySchemeAnnotation)
                         .filter(sc -> !Strings.isNullOrEmpty(sc.key))
-                        .ifPresent(sc -> components.addSecuritySchemes(sc.key, sc.securityScheme));
+                        .ifPresent(sc -> schemes.put(sc.key, sc.securityScheme));
             }
         }
 
-        return components.getSecuritySchemes();
+        return schemes;
     }
 }

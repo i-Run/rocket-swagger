@@ -9,9 +9,8 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import fr.irun.openapi.swagger.utils.IgnoredTypes;
-import fr.irun.openapi.swagger.writers.DefinitionWriter;
-import fr.irun.openapi.swagger.writers.SecuritySchemeWriter;
+import fr.irun.openapi.swagger.utils.OpenAPIComponentsHelper;
+import fr.irun.openapi.swagger.utils.ReaderUtils;
 import io.swagger.v3.core.converter.AnnotatedType;
 import io.swagger.v3.core.converter.ModelConverters;
 import io.swagger.v3.core.converter.ResolvedSchema;
@@ -22,6 +21,7 @@ import io.swagger.v3.core.util.PathUtils;
 import io.swagger.v3.core.util.ReflectionUtils;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.integration.ContextUtils;
 import io.swagger.v3.oas.integration.SwaggerConfiguration;
@@ -244,8 +244,10 @@ public class SpringOpenApiReader implements OpenApiReader {
         io.swagger.v3.oas.annotations.servers.Server[] apiServers =
                 ReflectionUtils.getRepeatableAnnotationsArray(cls, io.swagger.v3.oas.annotations.servers.Server.class);
 
-        new DefinitionWriter(openAPI).write(cls);
-        new SecuritySchemeWriter(openAPI).write(cls);
+        readOpenAPIDefinition(cls);
+
+        OpenAPIComponentsReader.readSecuritySchemes(cls)
+                .forEach(components::addSecuritySchemes);
 
         // class security requirements
         List<SecurityRequirement> classSecurityRequirements = new ArrayList<>();
@@ -283,7 +285,6 @@ public class SpringOpenApiReader implements OpenApiReader {
 
         // class external docs
         Optional<io.swagger.v3.oas.models.ExternalDocumentation> classExternalDocumentation = AnnotationsUtils.getExternalDocumentation(apiExternalDocs);
-
 
         JavaType classType = TypeFactory.defaultInstance().constructType(cls);
         BeanDescription bd = Json.mapper().getSerializationConfig().introspect(classType);
@@ -389,9 +390,6 @@ public class SpringOpenApiReader implements OpenApiReader {
                     if (annotatedMethod == null) { // annotatedMethod not null only when method with 0-2 parameters
                         Type[] genericParameterTypes = method.getGenericParameterTypes();
                         for (int i = 0; i < genericParameterTypes.length; i++) {
-                            if (IgnoredTypes.IGNORED_REQUESTBODY_TYPES.contains(genericParameterTypes[i])) {
-                                continue;
-                            }
                             final Type type = TypeFactory.defaultInstance().constructType(genericParameterTypes[i], cls);
                             io.swagger.v3.oas.annotations.Parameter paramAnnotation = AnnotationsUtils.getAnnotation(io.swagger.v3.oas.annotations.Parameter.class, paramAnnotations[i]);
                             Type paramType = ParameterProcessor.getParameterType(paramAnnotation, true);
@@ -421,11 +419,8 @@ public class SpringOpenApiReader implements OpenApiReader {
                     } else {
                         for (java.lang.reflect.Parameter parameter : method.getParameters()) {
                             Type parameterizedType = parameter.getParameterizedType();
-                            if (IgnoredTypes.IGNORED_REQUESTBODY_TYPES.contains(parameterizedType)) {
-                                continue;
-                            }
+
                             final Type type = TypeFactory.defaultInstance().constructType(parameterizedType, cls);
-//                            final Type type = TypeFactory.defaultInstance().constructType(param.getParameterType(), cls);
                             ImmutableSet<Class<? extends Annotation>> annotationTypes = ImmutableSet.of(RequestParam.class, PathVariable.class, MatrixVariable.class, RequestHeader.class, CookieValue.class);
                             Set<Annotation> annotations = annotationTypes.stream()
                                     .map(at -> AnnotatedElementUtils.findMergedAnnotation(parameter, at))
@@ -546,13 +541,16 @@ public class SpringOpenApiReader implements OpenApiReader {
         }
 
         // if no components object is defined in openApi instance passed by client, set openAPI.components to resolved components (if not empty)
-        if (!isEmptyComponents(components) && openAPI.getComponents() == null) {
-            openAPI.setComponents(components);
+        if (!OpenAPIComponentsHelper.isNullOrEmpty((components))) {
+            Components mergedComponents = OpenAPIComponentsHelper.mergeAllComponents(openAPI.getComponents(), components);
+            if (!OpenAPIComponentsHelper.isNullOrEmpty(mergedComponents)) {
+                openAPI.setComponents(mergedComponents);
+            }
         }
 
         // add tags from class to definition tags
         AnnotationsUtils
-                .getTags(apiTags, true).ifPresent(tags -> openApiTags.addAll(tags));
+                .getTags(apiTags, true).ifPresent(openApiTags::addAll);
 
         if (!openApiTags.isEmpty()) {
             Set<Tag> tagsSet = new LinkedHashSet<>();
@@ -572,6 +570,38 @@ public class SpringOpenApiReader implements OpenApiReader {
         }
 
         return openAPI;
+    }
+
+    private void readOpenAPIDefinition(Class<?> cls) {
+        OpenAPIDefinition openAPIDefinition = ReflectionUtils.getAnnotation(cls, OpenAPIDefinition.class);
+
+        if (openAPIDefinition == null) {
+            return;
+        }
+
+        AnnotationsUtils.getInfo(openAPIDefinition.info()).ifPresent(openAPI::setInfo);
+
+        // OpenApiDefinition security requirements
+        SecurityParser.getSecurityRequirements(openAPIDefinition.security())
+                .ifPresent(openAPI::setSecurity);
+        //
+        // OpenApiDefinition external docs
+        AnnotationsUtils
+                .getExternalDocumentation(openAPIDefinition.externalDocs())
+                .ifPresent(openAPI::setExternalDocs);
+
+        // OpenApiDefinition tags
+        AnnotationsUtils.getTags(openAPIDefinition.tags(), false)
+                .ifPresent(tags -> openAPI.getTags().addAll(tags));
+
+        // OpenApiDefinition servers
+        AnnotationsUtils.getServers(openAPIDefinition.servers()).ifPresent(openAPI::setServers);
+
+        // OpenApiDefinition extensions
+        if (openAPIDefinition.extensions().length > 0) {
+            openAPI.setExtensions(AnnotationsUtils
+                    .getExtensions(openAPIDefinition.extensions()));
+        }
     }
 
     protected Content processContent(Content content, Schema<?> schema, RequestMapping methodConsumes, RequestMapping classConsumes) {
@@ -1225,44 +1255,6 @@ public class SpringOpenApiReader implements OpenApiReader {
             ids.add(path.getPatch().getOperationId());
         }
         return ids;
-    }
-
-    private boolean isEmptyComponents(Components components) {
-        if (components == null) {
-            return true;
-        }
-        if (components.getSchemas() != null && components.getSchemas().size() > 0) {
-            return false;
-        }
-        if (components.getSecuritySchemes() != null && components.getSecuritySchemes().size() > 0) {
-            return false;
-        }
-        if (components.getCallbacks() != null && components.getCallbacks().size() > 0) {
-            return false;
-        }
-        if (components.getExamples() != null && components.getExamples().size() > 0) {
-            return false;
-        }
-        if (components.getExtensions() != null && components.getExtensions().size() > 0) {
-            return false;
-        }
-        if (components.getHeaders() != null && components.getHeaders().size() > 0) {
-            return false;
-        }
-        if (components.getLinks() != null && components.getLinks().size() > 0) {
-            return false;
-        }
-        if (components.getParameters() != null && components.getParameters().size() > 0) {
-            return false;
-        }
-        if (components.getRequestBodies() != null && components.getRequestBodies().size() > 0) {
-            return false;
-        }
-        if (components.getResponses() != null && components.getResponses().size() > 0) {
-            return false;
-        }
-
-        return true;
     }
 
     protected boolean isOperationHidden(Method method) {

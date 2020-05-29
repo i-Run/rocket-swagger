@@ -1,0 +1,77 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "test",
+    "version" : "1.0.0"
+  },
+  "paths" : {
+    "/listStringsWithoutDefaultApiResponse" : {
+      "get" : {
+        "description" : "Description",
+        "operationId" : "listStringsWithoutDefaultApiResponse",
+        "responses" : {
+          "401" : {
+            "description" : "- INVALID_PASSWORD -> The password associated to this account is invalid\n"
+          },
+          "200" : {
+            "description" : "successful operation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/listStringsWithIncompleteDefaultAdiResponse" : {
+      "get" : {
+        "description" : "Description",
+        "operationId" : "listStringsWithIncompleteDefaultAdiResponse",
+        "responses" : {
+          "200" : {
+            "description" : "The default response description",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "- INVALID_PASSWORD -> The password associated to this account is invalid\n"
+          }
+        }
+      }
+    },
+    "/listStringsWithAnyAnnotations" : {
+      "get" : {
+        "operationId" : "listStringsWithAnyAnnotations",
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

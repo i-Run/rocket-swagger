@@ -1,6 +1,7 @@
 package fr.irun.openapi.swagger.readers;
 
 import com.google.common.io.CharStreams;
+import fr.irun.openapi.swagger.samples.AuthenticationController;
 import fr.irun.openapi.swagger.samples.RestWithBodyController;
 import fr.irun.openapi.swagger.samples.RestWithConsumesController;
 import fr.irun.openapi.swagger.samples.SimpleRestController;
@@ -35,7 +36,8 @@ public class OpenAPIReaderFullTest {
             RestWithBodyController.class,
             RestWithConsumesController.class,
             SimpleRestController.class,
-            SimpleRestWithParameters.class
+            SimpleRestWithParameters.class,
+            AuthenticationController.class
     })
     void should_generate_yaml_for_class(Class<?> clazz) throws IOException {
         OpenAPI openAPI = tested.read(clazz);
@@ -44,9 +46,9 @@ public class OpenAPIReaderFullTest {
 
         Assertions.assertThat(actual).isNotEmpty();
 
-        InputStream resourceAsStream = OpenAPIReaderFullTest.class.getClassLoader().getResourceAsStream("openapi-yamls/" + clazz.getSimpleName() + ".json");
+        InputStream resourceAsStream = OpenAPIReaderFullTest.class.getClassLoader().getResourceAsStream("openapi-jsons/" + clazz.getSimpleName() + ".json");
         Assertions.assertThat(resourceAsStream).isNotNull();
         String expectedJson = CharStreams.toString(new InputStreamReader(resourceAsStream, StandardCharsets.UTF_8));
-        JsonAssertions.assertThatJson(expectedJson).isEqualTo(expectedJson);
+        JsonAssertions.assertThatJson(actual).isEqualTo(expectedJson);
     }
 }

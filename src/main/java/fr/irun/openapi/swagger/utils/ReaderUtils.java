@@ -1,10 +1,14 @@
-package fr.irun.openapi.swagger.readers;
+package fr.irun.openapi.swagger.utils;
 
 import com.fasterxml.jackson.annotation.JsonView;
+import com.google.common.collect.Maps;
+import fr.irun.openapi.swagger.readers.OpenAPIExtension;
+import fr.irun.openapi.swagger.readers.OpenAPIExtensions;
 import io.swagger.v3.core.util.ParameterProcessor;
 import io.swagger.v3.core.util.ReflectionUtils;
 import io.swagger.v3.oas.integration.api.OpenAPIConfiguration;
 import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -21,6 +25,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -28,6 +33,9 @@ import java.util.Optional;
 
 public class ReaderUtils {
     private static final String PATH_DELIMITER = "/";
+
+    private ReaderUtils() {
+    }
 
     /**
      * Collects constructor-level parameters from class.
