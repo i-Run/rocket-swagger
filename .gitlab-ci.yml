@@ -144,7 +144,7 @@ trigger:itg:
   variables:
     TAGS: nora_back
   trigger:
-    project: nora/tooling/itg-deploy
+    project: infra/labtool/itg-deploy
     branch: master
   rules:
     - if: '$CI_COMMIT_REF_NAME == "develop"'
