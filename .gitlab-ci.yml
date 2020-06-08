@@ -114,6 +114,7 @@ maven:release:
         $CI_COMMIT_REF_NAME == "develop"
         || $CI_COMMIT_REF_NAME =~ /^support/
       when: manual
+      allow_failure: true
 
 maven:sonar:
   stage: deploy
