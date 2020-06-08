@@ -149,18 +149,6 @@ maven:deploy:
     - if: '$CI_COMMIT_REF_NAME == "develop"'
       when: on_success
 
-# documentation:deploy:
-#   stage: notify
-#   allow_failure: true
-#   cache: {}
-#   script:
-#     - >
-#       curl --request POST --form "token=${CI_JOB_TOKEN}"
-#       --form ref=develop "${CI_API_V4_URL}/projects/149/trigger/pipeline"
-#   rules:
-#     - if: '$CI_COMMIT_REF_NAME == "develop"'
-#       when: always
-
 📣mattermost:failure:
   stage: notify
   allow_failure: true
