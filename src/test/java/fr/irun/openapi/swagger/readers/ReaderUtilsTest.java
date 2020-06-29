@@ -1,10 +1,12 @@
 package fr.irun.openapi.swagger.readers;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import fr.irun.openapi.swagger.utils.ReaderUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -56,6 +58,21 @@ class ReaderUtilsTest {
         );
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "/my, false",
+            "/my/first/test, false",
+            "/my/first/route, true",
+            "/my/second/route, true",
+            "/my/second/test, true",
+    })
+    void should_check_ignored_path(String path, boolean expectedIgnore) {
+        ImmutableSet<String> ignoredRoutes = ImmutableSet.of(
+                "/my/first/route",
+                "/my/second"
+        );
+        Assertions.assertThat(ReaderUtils.isIgnored(path, ignoredRoutes)).isEqualTo(expectedIgnore);
+    }
 
     @RequestMapping("/test")
     public static class ClazzWithAnnotatedMethod {

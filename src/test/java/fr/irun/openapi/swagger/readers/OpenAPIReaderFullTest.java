@@ -39,14 +39,15 @@ public class OpenAPIReaderFullTest {
             SimpleRestWithParameters.class,
             AuthenticationController.class
     })
-    void should_generate_yaml_for_class(Class<?> clazz) throws IOException {
+    void should_generate_json_for_class(Class<?> clazz) throws IOException {
         OpenAPI openAPI = tested.read(clazz);
 
         String actual = Json.pretty(openAPI);
 
         Assertions.assertThat(actual).isNotEmpty();
 
-        InputStream resourceAsStream = OpenAPIReaderFullTest.class.getClassLoader().getResourceAsStream("openapi-jsons/" + clazz.getSimpleName() + ".json");
+        InputStream resourceAsStream = OpenAPIReaderFullTest.class.getClassLoader().getResourceAsStream(
+                "openapi-jsons/" + clazz.getSimpleName() + ".json");
         Assertions.assertThat(resourceAsStream).isNotNull();
         String expectedJson = CharStreams.toString(new InputStreamReader(resourceAsStream, StandardCharsets.UTF_8));
         JsonAssertions.assertThatJson(actual).isEqualTo(expectedJson);

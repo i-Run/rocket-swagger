@@ -8,6 +8,8 @@ import io.swagger.v3.core.util.ParameterProcessor;
 import io.swagger.v3.core.util.ReflectionUtils;
 import io.swagger.v3.oas.integration.api.OpenAPIConfiguration;
 import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import javax.annotation.Nonnull;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -23,10 +26,14 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public final class ReaderUtils {
     private static final String PATH_DELIMITER = "/";
@@ -157,11 +164,40 @@ public final class ReaderUtils {
         return Optional.of(list);
     }
 
+    /**
+     * @param path   The path to check
+     * @param config The OpenAPI configuration object
+     * @return true if the path must be ignored
+     * @see ReaderUtils#isIgnored(String, Collection)
+     */
     public static boolean isIgnored(String path, OpenAPIConfiguration config) {
-        if (config.getIgnoredRoutes() == null) {
-            return false;
-        }
-        for (String item : config.getIgnoredRoutes()) {
+        return isIgnored(path, Optional.ofNullable(config.getIgnoredRoutes()).orElse(Collections.emptyList()));
+    }
+
+    /**
+     * <p>Check if path is contained inside a list of path. As plain path or as sub-path</p>
+     * <p>For the following ignored list :</p>
+     * <ul>
+     *     <li>/my/first/route</li>
+     *     <li>/my/second</li>
+     * </ul>
+     * <p>
+     * The expected result was:
+     * <ul>
+     *     <li>{@code /my > false}</li>
+     *     <li>{@code /my/first/test > false}</li>
+     *     <li>{@code /my/first/route > true}</li>
+     *     <li>{@code /my/second/route > true}</li>
+     *     <li>{@code /my/second/test > true}</li>
+     * </ul>
+     *
+     * @param path          The path to check
+     * @param ignoredRoutes The list of path to ignore
+     * @return true if the path is present il the ignoredRoutes as plain path or sub-path
+     */
+    public static boolean isIgnored(String path, @Nonnull Collection<String> ignoredRoutes) {
+        Objects.requireNonNull(ignoredRoutes, "ignoredRoutes is mandatory !");
+        for (String item : ignoredRoutes) {
             final int length = item.length();
             if (path.startsWith(item) && (path.length() == length || path.startsWith(PATH_DELIMITER, length))) {
                 return true;

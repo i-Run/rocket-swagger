@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import fr.irun.openapi.swagger.utils.OpenAPIComponentsHelper;
+import fr.irun.openapi.swagger.utils.OpenApiMethod;
 import fr.irun.openapi.swagger.utils.ReaderUtils;
 import io.swagger.v3.core.converter.AnnotatedType;
 import io.swagger.v3.core.converter.ModelConverters;
@@ -81,15 +82,6 @@ public class SpringOpenApiReader implements OpenApiReader {
     public static final String DEFAULT_MEDIA_TYPE_VALUE = org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
     public static final String DEFAULT_DESCRIPTION = "successful operation";
     public static final String DEFAULT_RESPONSE_STATUS = Integer.toString(HttpStatus.OK.value());
-
-    private static final String GET_METHOD = "get";
-    private static final String POST_METHOD = "post";
-    private static final String PUT_METHOD = "put";
-    private static final String DELETE_METHOD = "delete";
-    private static final String PATCH_METHOD = "patch";
-    private static final String TRACE_METHOD = "trace";
-    private static final String HEAD_METHOD = "head";
-    private static final String OPTIONS_METHOD = "options";
 
     private final Paths paths;
     private final Set<Tag> openApiTags;
@@ -261,10 +253,8 @@ public class SpringOpenApiReader implements OpenApiReader {
         }
 
         // parent tags
-        if (isSubresource) {
-            if (parentTags != null) {
-                classTags.addAll(parentTags);
-            }
+        if (isSubresource && parentTags != null) {
+            classTags.addAll(parentTags);
         }
 
         // servers
@@ -1004,36 +994,9 @@ public class SpringOpenApiReader implements OpenApiReader {
         return callbackMap;
     }
 
+    @Deprecated
     private void setPathItemOperation(PathItem pathItemObject, String method, Operation operation) {
-        switch (method) {
-            case POST_METHOD:
-                pathItemObject.post(operation);
-                break;
-            case GET_METHOD:
-                pathItemObject.get(operation);
-                break;
-            case DELETE_METHOD:
-                pathItemObject.delete(operation);
-                break;
-            case PUT_METHOD:
-                pathItemObject.put(operation);
-                break;
-            case PATCH_METHOD:
-                pathItemObject.patch(operation);
-                break;
-            case TRACE_METHOD:
-                pathItemObject.trace(operation);
-                break;
-            case HEAD_METHOD:
-                pathItemObject.head(operation);
-                break;
-            case OPTIONS_METHOD:
-                pathItemObject.options(operation);
-                break;
-            default:
-                // Do nothing here
-                break;
-        }
+        OpenApiMethod.fromName(method).pathItemSetter.apply(pathItemObject, operation);
     }
 
     private void setOperationObjectFromApiOperationAnnotation(
@@ -1150,6 +1113,7 @@ public class SpringOpenApiReader implements OpenApiReader {
         return Optional.of(parametersObject);
     }
 
+    @Deprecated
     protected ResolvedParameter getParameters(Type type, List<Annotation> annotations, Operation operation, RequestMapping classConsumes,
                                               RequestMapping methodConsumes, JsonView jsonViewAnnotation) {
         final Iterator<OpenAPIExtension> chain = OpenAPIExtensions.chain();
