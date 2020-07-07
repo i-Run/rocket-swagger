@@ -22,7 +22,7 @@ class OperationIdProviderTest {
                 .path("/users", new PathItem()
                         .get(new Operation().operationId("getUsers")));
 
-        tested = new OperationIdProvider(openAPI);
+        tested = new OperationIdProvider().load(openAPI);
     }
 
     @ParameterizedTest
@@ -38,7 +38,7 @@ class OperationIdProviderTest {
 
     @Test
     void should_get_operationid_from_empty_OpenAPI() {
-        tested = new OperationIdProvider(new OpenAPI());
+        tested = new OperationIdProvider();
         Assertions.assertThat(tested.provideOperationId("login")).isEqualTo("login");
     }
 }
