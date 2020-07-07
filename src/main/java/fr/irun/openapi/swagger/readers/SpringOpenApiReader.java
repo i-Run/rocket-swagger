@@ -1,30 +1,17 @@
 package fr.irun.openapi.swagger.readers;
 
-import com.fasterxml.jackson.annotation.JsonView;
-import com.fasterxml.jackson.databind.BeanDescription;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.introspect.AnnotatedMethod;
-import com.fasterxml.jackson.databind.type.TypeFactory;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import fr.irun.openapi.swagger.utils.OpenAPIComponentsHelper;
-import fr.irun.openapi.swagger.utils.OpenApiMethod;
+import fr.irun.openapi.swagger.utils.OpenApiHttpMethod;
+import fr.irun.openapi.swagger.utils.OperationIdProvider;
 import fr.irun.openapi.swagger.utils.ReaderUtils;
-import io.swagger.v3.core.converter.AnnotatedType;
-import io.swagger.v3.core.converter.ModelConverters;
-import io.swagger.v3.core.converter.ResolvedSchema;
 import io.swagger.v3.core.util.AnnotationsUtils;
-import io.swagger.v3.core.util.Json;
-import io.swagger.v3.core.util.ParameterProcessor;
-import io.swagger.v3.core.util.PathUtils;
 import io.swagger.v3.core.util.ReflectionUtils;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.integration.ContextUtils;
 import io.swagger.v3.oas.integration.SwaggerConfiguration;
 import io.swagger.v3.oas.integration.api.OpenAPIConfiguration;
@@ -33,49 +20,27 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
-import io.swagger.v3.oas.models.Paths;
-import io.swagger.v3.oas.models.callbacks.Callback;
-import io.swagger.v3.oas.models.media.Content;
-import io.swagger.v3.oas.models.media.MediaType;
-import io.swagger.v3.oas.models.media.ObjectSchema;
-import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
-import io.swagger.v3.oas.models.parameters.RequestBody;
-import io.swagger.v3.oas.models.responses.ApiResponse;
-import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.MatrixVariable;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class SpringOpenApiReader implements OpenApiReader {
@@ -83,17 +48,11 @@ public class SpringOpenApiReader implements OpenApiReader {
     public static final String DEFAULT_DESCRIPTION = "successful operation";
     public static final String DEFAULT_RESPONSE_STATUS = Integer.toString(HttpStatus.OK.value());
 
-    private final Paths paths;
-    private final Set<Tag> openApiTags;
     private OpenAPIConfiguration config;
     private OpenAPI openAPI;
-    private Components components;
 
     public SpringOpenApiReader() {
         this.openAPI = new OpenAPI();
-        paths = new Paths();
-        openApiTags = new LinkedHashSet<>();
-        components = new Components();
     }
 
     public SpringOpenApiReader(OpenAPI openAPI) {
@@ -120,9 +79,7 @@ public class SpringOpenApiReader implements OpenApiReader {
      */
     public OpenAPI read(Class<?> cls) {
         log.debug("read single class");
-        return read(cls, resolveApplicationPath(),
-                null, false, null, null,
-                Collections.emptySet(), Collections.emptyList(), Collections.emptySet());
+        return read(cls, resolveApplicationPath());
     }
 
     /**
@@ -169,7 +126,7 @@ public class SpringOpenApiReader implements OpenApiReader {
         }
 
         for (Class<?> cls : sortedClasses) {
-            read(cls, resolveApplicationPath(), null, false, null, null, new LinkedHashSet<>(), new ArrayList<>(), new HashSet<>());
+            read(cls, resolveApplicationPath());
         }
 
         for (ReaderListener listener : listeners.values()) {
@@ -188,10 +145,9 @@ public class SpringOpenApiReader implements OpenApiReader {
             this.config = ContextUtils.deepCopy(openApiConfiguration);
             if (openApiConfiguration.getOpenAPI() != null) {
                 this.openAPI = this.config.getOpenAPI();
-                if (this.openAPI.getComponents() != null) {
-                    this.components = this.openAPI.getComponents();
-                }
             }
+        } else {
+            this.config = new SwaggerConfiguration();
         }
     }
 
@@ -205,40 +161,38 @@ public class SpringOpenApiReader implements OpenApiReader {
         return "";
     }
 
-    public OpenAPI read(
-            Class<?> cls, String parentPath, String parentMethod, boolean isSubresource,
-            RequestBody parentRequestBody, ApiResponses parentResponses, Set<String> parentTags,
-            List<Parameter> parentParameters, Set<Class<?>> scannedResources) {
+    public OpenAPI read(Class<?> cls, String parentPath) {
 
-        log.debug("read class {}, parentPath: {}, parentMethod: {} ...", cls, parentPath, parentMethod);
+        log.debug("read class {}, parentPath: {}...", cls, parentPath);
+
+        GlobalElementReader globalElementReader = new GlobalElementReader(openAPI);
 
         Hidden hidden = cls.getAnnotation(Hidden.class);
 
-        final RequestMapping apiRequestMapping = AnnotationUtils.findAnnotation(cls, RequestMapping.class);
+        boolean isRestController = AnnotatedElementUtils.isAnnotated(cls, RestController.class);
+        String classMediaType = (isRestController) ? MediaType.APPLICATION_JSON_VALUE : MediaType.ALL_VALUE;
+        RequestMapping requestMappingAnnotation = AnnotatedElementUtils.findMergedAnnotation(cls, RequestMapping.class);
+        if (isRestController && (requestMappingAnnotation == null || requestMappingAnnotation.produces().length == 0)) {
+            Map<String, Object> annotationAttributes = Optional.ofNullable(requestMappingAnnotation)
+                    .map(AnnotationUtils::getAnnotationAttributes)
+                    .orElseGet(HashMap::new);
+            annotationAttributes.put("produces", classMediaType);
+            requestMappingAnnotation = AnnotationUtils.synthesizeAnnotation(
+                    annotationAttributes, RequestMapping.class, cls);
+        }
+        final RequestMapping apiRequestMapping = requestMappingAnnotation;
 
         if (hidden != null) {
             return openAPI;
         }
 
-        io.swagger.v3.oas.annotations.responses.ApiResponse[] classResponses =
-                ReflectionUtils.getRepeatableAnnotationsArray(cls, io.swagger.v3.oas.annotations.responses.ApiResponse.class);
-
-        ExternalDocumentation apiExternalDocs = ReflectionUtils.getAnnotation(cls, ExternalDocumentation.class);
         io.swagger.v3.oas.annotations.servers.Server[] apiServers =
                 ReflectionUtils.getRepeatableAnnotationsArray(cls, io.swagger.v3.oas.annotations.servers.Server.class);
 
         readOpenAPIDefinition(cls);
 
         OpenAPIComponentsReader.readSecuritySchemes(cls)
-                .forEach(components::addSecuritySchemes);
-
-        // class security requirements
-        List<io.swagger.v3.oas.annotations.security.SecurityRequirement> apiSecurityRequirements =
-                ReflectionUtils.getRepeatableAnnotations(cls, io.swagger.v3.oas.annotations.security.SecurityRequirement.class);
-        List<SecurityRequirement> classSecurityRequirements = Optional.ofNullable(apiSecurityRequirements)
-                .map(Iterables::getOnlyElement)
-                .flatMap(SecurityParser::getSecurityRequirements)
-                .orElseGet(Collections::emptyList);
+                .forEach(globalElementReader.getComponents()::addSecuritySchemes);
 
         // class tags, consider only name to add to class operations
         io.swagger.v3.oas.annotations.tags.Tag[] apiTags =
@@ -252,218 +206,51 @@ public class SpringOpenApiReader implements OpenApiReader {
             );
         }
 
-        // parent tags
-        if (isSubresource && parentTags != null) {
-            classTags.addAll(parentTags);
-        }
-
         // servers
         final List<io.swagger.v3.oas.models.servers.Server> classServers = new ArrayList<>();
         if (apiServers != null) {
             AnnotationsUtils.getServers(apiServers).ifPresent(classServers::addAll);
         }
 
-        // class external docs
-        Optional<io.swagger.v3.oas.models.ExternalDocumentation> classExternalDocumentation = AnnotationsUtils.getExternalDocumentation(apiExternalDocs);
-
-        JavaType classType = TypeFactory.defaultInstance().constructType(cls);
-        BeanDescription bd = Json.mapper().getSerializationConfig().introspect(classType);
-
         final List<Parameter> globalParameters = new ArrayList<>();
 
         // look for constructor-level annotated properties
-        globalParameters.addAll(ReaderUtils.collectConstructorParameters(cls, components, apiRequestMapping, null));
+        globalParameters.addAll(ReaderUtils.collectConstructorParameters(cls, globalElementReader.getComponents(), apiRequestMapping, null));
 
         // look for field-level annotated properties
-        globalParameters.addAll(ReaderUtils.collectFieldParameters(cls, components, apiRequestMapping, null));
+        globalParameters.addAll(ReaderUtils.collectFieldParameters(cls, globalElementReader.getComponents(), apiRequestMapping, null));
 
+        OperationIdProvider operationIdProvider = new OperationIdProvider().load(openAPI);
+        OperationReader operationReader = new OperationReader(operationIdProvider, globalElementReader, Iterators.getLast(OpenAPIExtensions.chain()));
+        CallbackReader callbackReader = new CallbackReader(operationReader);
+        ClazzMethodReader clazzMethodReader = new ClazzMethodReader(
+                config.isReadAllResources(),
+                config.getIgnoredRoutes() != null ? config.getIgnoredRoutes() : Collections.emptyList(),
+                globalElementReader,
+                callbackReader, operationReader, operationIdProvider,
+                Iterators.getLast(OpenAPIExtensions.chain()), apiRequestMapping, parentPath
+        );
         // iterate class methods
         Method[] methods = cls.getMethods();
         for (Method method : methods) {
-            if (isOperationHidden(method)) {
-                continue;
-            }
-            AnnotatedMethod annotatedMethod = bd.findMethod(method.getName(), method.getParameterTypes());
-            RequestMapping methodRequestMapping = AnnotatedElementUtils.findMergedAnnotation(method, RequestMapping.class);
-            if (ReflectionUtils.isOverriddenMethod(method, cls)) {
-                continue;
-            }
-
-            String operationPath = ReaderUtils.getPath(apiRequestMapping, methodRequestMapping, parentPath, isSubresource);
-
-            // skip if path is the same as parent, e.g. for @ApplicationPath annotated application
-            // extending resource config.
-            if (ignoreOperationPath(operationPath, parentPath) && !isSubresource) {
-                continue;
-            }
-
-            Map<String, String> regexMap = new LinkedHashMap<>();
-            operationPath = PathUtils.parsePath(operationPath, regexMap);
-            if (operationPath != null) {
-                if (config != null && ReaderUtils.isIgnored(operationPath, config)) {
-                    continue;
-                }
-
-                final Class<?> subResource = getSubResourceWithJaxRsSubresourceLocatorSpecs(method);
-
-                String httpMethod = ReaderUtils.extractOperationMethod(method, OpenAPIExtensions.chain());
-                httpMethod = (httpMethod == null && isSubresource) ? parentMethod : httpMethod;
-
-                if (StringUtils.isBlank(httpMethod) && subResource == null) {
-                    continue;
-                } else if (StringUtils.isBlank(httpMethod) && subResource != null) {
-                    Type returnType = method.getGenericReturnType();
-                    if (annotatedMethod != null && annotatedMethod.getType() != null) {
-                        returnType = annotatedMethod.getType();
+            Optional<Map.Entry<String, PathItem>> oPathItem = clazzMethodReader.read(method);
+            oPathItem.ifPresent(path -> {
+                PathItem originalPathItem;
+                if (openAPI.getPaths() != null && openAPI.getPaths().get(path.getKey()) != null) {
+                    originalPathItem = openAPI.getPaths().get(path.getKey());
+                    for (OpenApiHttpMethod value : OpenApiHttpMethod.values()) {
+                        Operation operation = value.pathItemGetter.apply(path.getValue());
+                        value.pathItemSetter.apply(originalPathItem, operation);
                     }
-
-                    if (shouldIgnoreClass(returnType.getTypeName()) && !method.getGenericReturnType().equals(subResource)) {
-                        continue;
-                    }
-                }
-
-                io.swagger.v3.oas.annotations.Operation apiOperation = ReflectionUtils.getAnnotation(method, io.swagger.v3.oas.annotations.Operation.class);
-                JsonView jsonViewAnnotation;
-                JsonView jsonViewAnnotationForRequestBody;
-                if (apiOperation != null && apiOperation.ignoreJsonView()) {
-                    jsonViewAnnotation = null;
-                    jsonViewAnnotationForRequestBody = null;
                 } else {
-                    jsonViewAnnotation = ReflectionUtils.getAnnotation(method, JsonView.class);
-                    /* If one and only one exists, use the @JsonView annotation from the method parameter annotated
-                       with @RequestBody. Otherwise fall back to the @JsonView annotation for the method itself. */
-                    jsonViewAnnotationForRequestBody = (JsonView) Arrays.stream(ReflectionUtils.getParameterAnnotations(method))
-                            .filter(arr -> Arrays.stream(arr).anyMatch(annotation ->
-                                    annotation.annotationType()
-                                            .equals(io.swagger.v3.oas.annotations.parameters.RequestBody.class)
-                            ))
-                            .flatMap(Arrays::stream)
-                            .filter(annotation ->
-                                    annotation.annotationType().equals(JsonView.class))
-                            .reduce((a, b) -> jsonViewAnnotation)
-                            .orElse(jsonViewAnnotation);
+                    originalPathItem = path.getValue();
                 }
+                openAPI.path(path.getKey(), originalPathItem);
+            });
 
-                Operation operation = parseMethod(
-                        method, globalParameters, methodRequestMapping, apiRequestMapping, classSecurityRequirements,
-                        classExternalDocumentation, classTags, classServers, isSubresource, parentRequestBody,
-                        parentResponses, jsonViewAnnotation, classResponses, annotatedMethod);
-
-                if (operation != null) {
-
-                    List<Parameter> operationParameters = new ArrayList<>();
-                    List<Parameter> formParameters = new ArrayList<>();
-                    for (java.lang.reflect.Parameter parameter : method.getParameters()) {
-                        Type parameterizedType = parameter.getParameterizedType();
-
-                        final Type type = TypeFactory.defaultInstance().constructType(parameterizedType, cls);
-                        ImmutableSet<Class<? extends Annotation>> annotationTypes = ImmutableSet.of(RequestParam.class, PathVariable.class, MatrixVariable.class, RequestHeader.class, CookieValue.class);
-                        Set<Annotation> annotations = annotationTypes.stream()
-                                .map(at -> AnnotatedElementUtils.findMergedAnnotation(parameter, at))
-                                .filter(Objects::nonNull)
-                                .map(a -> {
-                                    Object value = AnnotationUtils.getValue(a, "value");
-                                    if (value == null || Strings.isNullOrEmpty(value.toString())) {
-                                        return AnnotationUtils.synthesizeAnnotation(ImmutableMap.of("value", parameter.getName()), a.annotationType(), parameter);
-                                    } else {
-                                        return a;
-                                    }
-                                }).collect(Collectors.toSet());
-
-                        io.swagger.v3.oas.annotations.Parameter paramAnnotation = AnnotationUtils.getAnnotation(parameter, io.swagger.v3.oas.annotations.Parameter.class);
-                        if (paramAnnotation != null) {
-                            annotations.add(paramAnnotation);
-                        }
-
-                        Type paramType = ParameterProcessor.getParameterType(paramAnnotation, true);
-                        if (paramType == null) {
-                            paramType = type;
-                        } else {
-                            if (!(paramType instanceof Class)) {
-                                paramType = type;
-                            }
-                        }
-                        ResolvedParameter resolvedParameter = getParameters(paramType, ImmutableList.copyOf(annotations), operation, apiRequestMapping, methodRequestMapping, jsonViewAnnotation);
-                        operationParameters.addAll(resolvedParameter.parameters);
-                        // collect params to use together as request Body
-                        formParameters.addAll(resolvedParameter.formParameters);
-                        if (resolvedParameter.requestBody != null) {
-                            processRequestBody(
-                                    resolvedParameter.requestBody, operation, methodRequestMapping, apiRequestMapping,
-                                    operationParameters, parameter.getDeclaredAnnotations(), type, jsonViewAnnotationForRequestBody);
-                        }
-                    }
-
-                    // if we have form parameters, need to merge them into single schema and use as request body..
-                    if (formParameters.size() > 0) {
-                        Schema<?> mergedSchema = new ObjectSchema();
-                        for (Parameter formParam : formParameters) {
-                            mergedSchema.addProperties(formParam.getName(), formParam.getSchema());
-                            if (null != formParam.getRequired() && formParam.getRequired()) {
-                                mergedSchema.addRequiredItem(formParam.getName());
-                            }
-                        }
-                        Parameter merged = new Parameter().schema(mergedSchema);
-                        processRequestBody(
-                                merged, operation, methodRequestMapping, apiRequestMapping, operationParameters,
-                                new Annotation[0], null, jsonViewAnnotationForRequestBody);
-
-                    }
-                    if (operationParameters.size() > 0) {
-                        for (Parameter operationParameter : operationParameters) {
-                            operation.addParametersItem(operationParameter);
-                        }
-                    }
-
-                    // if subresource, merge parent parameters
-                    if (parentParameters != null) {
-                        for (Parameter parentParameter : parentParameters) {
-                            operation.addParametersItem(parentParameter);
-                        }
-                    }
-
-                    if (subResource != null && !scannedResources.contains(subResource)) {
-                        scannedResources.add(subResource);
-                        read(subResource, operationPath, httpMethod, true, operation.getRequestBody(),
-                                operation.getResponses(), classTags, operation.getParameters(), scannedResources);
-                        // remove the sub resource so that it can visit it later in another path
-                        // but we have a room for optimization in the future to reuse the scanned result
-                        // by caching the scanned resources in the reader instance to avoid actual scanning
-                        // the the resources again
-                        scannedResources.remove(subResource);
-                        // don't proceed with root resource operation, as it's handled by subresource
-                        continue;
-                    }
-
-                    final Iterator<OpenAPIExtension> chain = OpenAPIExtensions.chain();
-                    if (chain.hasNext()) {
-                        final OpenAPIExtension extension = chain.next();
-                        extension.decorateOperation(operation, method, chain);
-                    }
-
-                    PathItem pathItemObject;
-                    if (openAPI.getPaths() != null && openAPI.getPaths().get(operationPath) != null) {
-                        pathItemObject = openAPI.getPaths().get(operationPath);
-                    } else {
-                        pathItemObject = new PathItem();
-                    }
-
-                    if (StringUtils.isBlank(httpMethod)) {
-                        continue;
-                    }
-                    setPathItemOperation(pathItemObject, httpMethod, operation);
-
-                    paths.addPathItem(operationPath, pathItemObject);
-                    if (openAPI.getPaths() != null) {
-                        this.paths.putAll(openAPI.getPaths());
-                    }
-
-                    openAPI.setPaths(this.paths);
-
-                }
-            }
         }
 
+        final Components components = globalElementReader.getComponents();
         // if no components object is defined in openApi instance passed by client, set openAPI.components to resolved components (if not empty)
         if (!OpenAPIComponentsHelper.isNullOrEmpty((components))) {
             Components mergedComponents = OpenAPIComponentsHelper.mergeAllComponents(openAPI.getComponents(), components);
@@ -473,8 +260,8 @@ public class SpringOpenApiReader implements OpenApiReader {
         }
 
         // add tags from class to definition tags
-        AnnotationsUtils
-                .getTags(apiTags, true).ifPresent(openApiTags::addAll);
+        final Set<Tag> openApiTags = globalElementReader.getTags();
+        AnnotationsUtils.getTags(apiTags, true).ifPresent(openApiTags::addAll);
 
         if (!openApiTags.isEmpty()) {
             Set<Tag> tagsSet = new LinkedHashSet<>();
@@ -528,716 +315,4 @@ public class SpringOpenApiReader implements OpenApiReader {
         }
     }
 
-    protected Content processContent(Content content, Schema<?> schema, RequestMapping methodConsumes, RequestMapping classConsumes) {
-        Content bodyContent = Optional.ofNullable(content).orElseGet(Content::new);
-
-        String[] mediaTypes = Optional.ofNullable(methodConsumes)
-                .map(RequestMapping::consumes)
-                .filter(c -> c.length > 0)
-                .orElseGet(() -> Optional.ofNullable(classConsumes)
-                        .map(RequestMapping::consumes)
-                        .filter(c -> c.length > 0)
-                        .orElse(new String[]{DEFAULT_MEDIA_TYPE_VALUE}));
-
-        for (String mediaType : mediaTypes) {
-            MediaType mediaTypeObject = new MediaType();
-            mediaTypeObject.setSchema(schema);
-            bodyContent.addMediaType(mediaType, mediaTypeObject);
-        }
-
-        return bodyContent;
-    }
-
-    protected void processRequestBody(Parameter requestBodyParameter, Operation operation,
-                                      RequestMapping methodConsumes, RequestMapping classConsumes,
-                                      List<Parameter> operationParameters,
-                                      Annotation[] paramAnnotations, Type type,
-                                      JsonView jsonViewAnnotation) {
-
-        io.swagger.v3.oas.annotations.parameters.RequestBody requestBodyAnnotation = getRequestBody(Arrays.asList(paramAnnotations));
-        if (requestBodyAnnotation != null) {
-            Optional<RequestBody> optionalRequestBody = OperationParser.getRequestBody(requestBodyAnnotation, classConsumes, methodConsumes, components, jsonViewAnnotation);
-            if (optionalRequestBody.isPresent()) {
-                RequestBody requestBody = optionalRequestBody.get();
-                if (StringUtils.isBlank(requestBody.get$ref()) &&
-                        (requestBody.getContent() == null || requestBody.getContent().isEmpty())) {
-                    if (requestBodyParameter.getSchema() != null) {
-                        Content content = processContent(requestBody.getContent(), requestBodyParameter.getSchema(), methodConsumes, classConsumes);
-                        requestBody.setContent(content);
-                    }
-                } else if (StringUtils.isBlank(requestBody.get$ref()) &&
-                        requestBody.getContent() != null &&
-                        !requestBody.getContent().isEmpty()) {
-                    if (requestBodyParameter.getSchema() != null) {
-                        for (MediaType mediaType : requestBody.getContent().values()) {
-                            if (mediaType.getSchema() == null) {
-                                if (requestBodyParameter.getSchema() == null) {
-                                    mediaType.setSchema(new Schema<>());
-                                } else {
-                                    mediaType.setSchema(requestBodyParameter.getSchema());
-                                }
-                            }
-                            if (StringUtils.isBlank(mediaType.getSchema().getType())) {
-                                mediaType.getSchema().setType(requestBodyParameter.getSchema().getType());
-                            }
-                        }
-                    }
-                }
-                operation.setRequestBody(requestBody);
-            }
-        } else {
-            if (operation.getRequestBody() == null) {
-                boolean isRequestBodyEmpty = true;
-                RequestBody requestBody = new RequestBody();
-                if (StringUtils.isNotBlank(requestBodyParameter.get$ref())) {
-                    requestBody.set$ref(requestBodyParameter.get$ref());
-                    isRequestBodyEmpty = false;
-                }
-                if (StringUtils.isNotBlank(requestBodyParameter.getDescription())) {
-                    requestBody.setDescription(requestBodyParameter.getDescription());
-                    isRequestBodyEmpty = false;
-                }
-                if (Boolean.TRUE.equals(requestBodyParameter.getRequired())) {
-                    requestBody.setRequired(requestBodyParameter.getRequired());
-                    isRequestBodyEmpty = false;
-                }
-
-                if (requestBodyParameter.getSchema() != null) {
-                    Content content = processContent(null, requestBodyParameter.getSchema(), methodConsumes, classConsumes);
-                    requestBody.setContent(content);
-                    isRequestBodyEmpty = false;
-                }
-                if (!isRequestBodyEmpty) {
-                    operation.setRequestBody(requestBody);
-                }
-            }
-        }
-    }
-
-    private io.swagger.v3.oas.annotations.parameters.RequestBody getRequestBody(List<Annotation> annotations) {
-        if (annotations == null) {
-            return null;
-        }
-        for (Annotation a : annotations) {
-            if (a instanceof io.swagger.v3.oas.annotations.parameters.RequestBody) {
-                return (io.swagger.v3.oas.annotations.parameters.RequestBody) a;
-            }
-        }
-        return null;
-    }
-
-    public Operation parseMethod(
-            Method method,
-            List<Parameter> globalParameters,
-            JsonView jsonViewAnnotation) {
-        JavaType classType = TypeFactory.defaultInstance().constructType(method.getDeclaringClass());
-        return parseMethod(
-                classType.getClass(),
-                method,
-                globalParameters,
-                null,
-                null,
-                new ArrayList<>(),
-                Optional.empty(),
-                new HashSet<>(),
-                new ArrayList<>(),
-                false,
-                null,
-                null,
-                jsonViewAnnotation,
-                null,
-                null);
-    }
-
-    public Operation parseMethod(
-            Method method,
-            List<Parameter> globalParameters,
-            RequestMapping methodConsumes,
-            RequestMapping classConsumes,
-            List<SecurityRequirement> classSecurityRequirements,
-            Optional<io.swagger.v3.oas.models.ExternalDocumentation> classExternalDocs,
-            Set<String> classTags,
-            List<io.swagger.v3.oas.models.servers.Server> classServers,
-            boolean isSubresource,
-            RequestBody parentRequestBody,
-            ApiResponses parentResponses,
-            JsonView jsonViewAnnotation,
-            io.swagger.v3.oas.annotations.responses.ApiResponse[] classResponses) {
-        JavaType classType = TypeFactory.defaultInstance().constructType(method.getDeclaringClass());
-        return parseMethod(
-                classType.getClass(),
-                method,
-                globalParameters,
-                methodConsumes,
-                classConsumes,
-                classSecurityRequirements,
-                classExternalDocs,
-                classTags,
-                classServers,
-                isSubresource,
-                parentRequestBody,
-                parentResponses,
-                jsonViewAnnotation,
-                classResponses,
-                null);
-    }
-
-    public Operation parseMethod(
-            Method method,
-            List<Parameter> globalParameters,
-            RequestMapping methodConsumes,
-            RequestMapping classConsumes,
-            List<SecurityRequirement> classSecurityRequirements,
-            Optional<io.swagger.v3.oas.models.ExternalDocumentation> classExternalDocs,
-            Set<String> classTags,
-            List<io.swagger.v3.oas.models.servers.Server> classServers,
-            boolean isSubresource,
-            RequestBody parentRequestBody,
-            ApiResponses parentResponses,
-            JsonView jsonViewAnnotation,
-            io.swagger.v3.oas.annotations.responses.ApiResponse[] classResponses,
-            AnnotatedMethod annotatedMethod) {
-        JavaType classType = TypeFactory.defaultInstance().constructType(method.getDeclaringClass());
-        return parseMethod(
-                classType.getClass(),
-                method,
-                globalParameters,
-                methodConsumes,
-                classConsumes,
-                classSecurityRequirements,
-                classExternalDocs,
-                classTags,
-                classServers,
-                isSubresource,
-                parentRequestBody,
-                parentResponses,
-                jsonViewAnnotation,
-                classResponses,
-                annotatedMethod);
-    }
-
-    protected Operation parseMethod(
-            Class<?> cls,
-            Method method,
-            List<Parameter> globalParameters,
-            RequestMapping methodConsumes,
-            RequestMapping classConsumes,
-            List<SecurityRequirement> classSecurityRequirements,
-            Optional<io.swagger.v3.oas.models.ExternalDocumentation> classExternalDocs,
-            Set<String> classTags,
-            List<io.swagger.v3.oas.models.servers.Server> classServers,
-            boolean isSubresource,
-            RequestBody parentRequestBody,
-            ApiResponses parentResponses,
-            JsonView jsonViewAnnotation,
-            io.swagger.v3.oas.annotations.responses.ApiResponse[] classResponses,
-            AnnotatedMethod annotatedMethod) {
-        Operation operation = new Operation();
-
-        io.swagger.v3.oas.annotations.Operation apiOperation = ReflectionUtils.getAnnotation(method, io.swagger.v3.oas.annotations.Operation.class);
-
-        List<io.swagger.v3.oas.annotations.security.SecurityRequirement> apiSecurity = ReflectionUtils.getRepeatableAnnotations(method, io.swagger.v3.oas.annotations.security.SecurityRequirement.class);
-        List<io.swagger.v3.oas.annotations.callbacks.Callback> apiCallbacks = ReflectionUtils.getRepeatableAnnotations(method, io.swagger.v3.oas.annotations.callbacks.Callback.class);
-        List<Server> apiServers = ReflectionUtils.getRepeatableAnnotations(method, Server.class);
-        List<io.swagger.v3.oas.annotations.tags.Tag> apiTags = ReflectionUtils.getRepeatableAnnotations(method, io.swagger.v3.oas.annotations.tags.Tag.class);
-        List<io.swagger.v3.oas.annotations.Parameter> apiParameters = ReflectionUtils.getRepeatableAnnotations(method, io.swagger.v3.oas.annotations.Parameter.class);
-        List<io.swagger.v3.oas.annotations.responses.ApiResponse> apiResponses = ReflectionUtils.getRepeatableAnnotations(method, io.swagger.v3.oas.annotations.responses.ApiResponse.class);
-        io.swagger.v3.oas.annotations.parameters.RequestBody apiRequestBody =
-                ReflectionUtils.getAnnotation(method, io.swagger.v3.oas.annotations.parameters.RequestBody.class);
-
-        ExternalDocumentation apiExternalDocumentation = ReflectionUtils.getAnnotation(method, ExternalDocumentation.class);
-
-        // callbacks
-        Map<String, Callback> callbacks = new LinkedHashMap<>();
-
-        if (apiCallbacks != null) {
-            for (io.swagger.v3.oas.annotations.callbacks.Callback methodCallback : apiCallbacks) {
-                Map<String, Callback> currentCallbacks = getCallbacks(methodCallback, methodConsumes, classConsumes, jsonViewAnnotation);
-                callbacks.putAll(currentCallbacks);
-            }
-        }
-        if (callbacks.size() > 0) {
-            operation.setCallbacks(callbacks);
-        }
-
-        // security
-        classSecurityRequirements.forEach(operation::addSecurityItem);
-        if (apiSecurity != null) {
-            Optional<List<SecurityRequirement>> requirementsObject = SecurityParser.getSecurityRequirements(apiSecurity.toArray(new io.swagger.v3.oas.annotations.security.SecurityRequirement[apiSecurity.size()]));
-            if (requirementsObject.isPresent()) {
-                requirementsObject.get().stream()
-                        .filter(r -> operation.getSecurity() == null || !operation.getSecurity().contains(r))
-                        .forEach(operation::addSecurityItem);
-            }
-        }
-
-        // servers
-        if (classServers != null) {
-            classServers.forEach(operation::addServersItem);
-        }
-
-        if (apiServers != null) {
-            AnnotationsUtils.getServers(apiServers.toArray(new Server[apiServers.size()])).ifPresent(servers -> servers.forEach(operation::addServersItem));
-        }
-
-        // external docs
-        AnnotationsUtils.getExternalDocumentation(apiExternalDocumentation).ifPresent(operation::setExternalDocs);
-
-        // method tags
-        if (apiTags != null) {
-            apiTags.stream()
-                    .filter(t -> operation.getTags() == null || (operation.getTags() != null && !operation.getTags().contains(t.name())))
-                    .map(io.swagger.v3.oas.annotations.tags.Tag::name)
-                    .forEach(operation::addTagsItem);
-            AnnotationsUtils.getTags(apiTags.toArray(new io.swagger.v3.oas.annotations.tags.Tag[apiTags.size()]), true).ifPresent(tags -> openApiTags.addAll(tags));
-        }
-
-        // parameters
-        if (globalParameters != null) {
-            for (Parameter globalParameter : globalParameters) {
-                operation.addParametersItem(globalParameter);
-            }
-        }
-        if (apiParameters != null) {
-            getParametersListFromAnnotation(
-                    apiParameters.toArray(new io.swagger.v3.oas.annotations.Parameter[apiParameters.size()]),
-                    classConsumes,
-                    methodConsumes,
-                    operation,
-                    jsonViewAnnotation).ifPresent(p -> p.forEach(operation::addParametersItem));
-        }
-
-        // RequestBody in Method
-        if (apiRequestBody != null && operation.getRequestBody() == null) {
-            OperationParser.getRequestBody(apiRequestBody, classConsumes, methodConsumes, components, jsonViewAnnotation).ifPresent(
-                    operation::setRequestBody);
-        }
-
-        // operation id
-        if (StringUtils.isBlank(operation.getOperationId())) {
-            operation.setOperationId(getOperationId(method.getName()));
-        }
-
-        // classResponses
-        if (classResponses != null && classResponses.length > 0) {
-            OperationParser.getApiResponses(
-                    classResponses,
-                    null,
-                    null,
-                    components,
-                    jsonViewAnnotation
-            ).ifPresent(responses -> {
-                if (operation.getResponses() == null) {
-                    operation.setResponses(responses);
-                } else {
-                    responses.forEach(operation.getResponses()::addApiResponse);
-                }
-            });
-        }
-
-        if (apiOperation != null) {
-            setOperationObjectFromApiOperationAnnotation(operation, apiOperation, methodConsumes, classConsumes, jsonViewAnnotation);
-        }
-
-        // apiResponses
-        if (apiResponses != null && apiResponses.size() > 0) {
-            OperationParser.getApiResponses(
-                    apiResponses.toArray(new io.swagger.v3.oas.annotations.responses.ApiResponse[apiResponses.size()]),
-                    null,
-                    null,
-                    components,
-                    jsonViewAnnotation
-            ).ifPresent(responses -> {
-                if (operation.getResponses() == null) {
-                    operation.setResponses(responses);
-                } else {
-                    responses.forEach(operation.getResponses()::addApiResponse);
-                }
-            });
-        }
-
-        // class tags after tags defined as field of @Operation
-        if (classTags != null) {
-            classTags.stream()
-                    .filter(t -> operation.getTags() == null || (operation.getTags() != null && !operation.getTags().contains(t)))
-                    .forEach(operation::addTagsItem);
-        }
-
-        // external docs of class if not defined in annotation of method or as field of Operation annotation
-        if (operation.getExternalDocs() == null) {
-            classExternalDocs.ifPresent(operation::setExternalDocs);
-        }
-
-        // if subresource, merge parent requestBody
-        if (isSubresource && parentRequestBody != null) {
-            if (operation.getRequestBody() == null) {
-                operation.requestBody(parentRequestBody);
-            } else {
-                Content content = operation.getRequestBody().getContent();
-                if (content == null) {
-                    content = parentRequestBody.getContent();
-                    operation.getRequestBody().setContent(content);
-                } else if (parentRequestBody.getContent() != null) {
-                    for (String parentMediaType : parentRequestBody.getContent().keySet()) {
-                        if (content.get(parentMediaType) == null) {
-                            content.addMediaType(parentMediaType, parentRequestBody.getContent().get(parentMediaType));
-                        }
-                    }
-                }
-            }
-        }
-
-        // handle return type, add as response in case.
-        Type returnType = method.getGenericReturnType();
-
-        if (annotatedMethod != null && annotatedMethod.getType() != null) {
-            returnType = annotatedMethod.getType();
-        }
-
-        final Class<?> subResource = getSubResourceWithJaxRsSubresourceLocatorSpecs(method);
-        if (!shouldIgnoreClass(returnType.getTypeName()) && !method.getGenericReturnType().equals(subResource)) {
-            ResolvedSchema resolvedSchema = ModelConverters.getInstance()
-                    .resolveAsResolvedSchema(new AnnotatedType(returnType).resolveAsRef(true).jsonViewAnnotation(jsonViewAnnotation));
-            if (resolvedSchema.schema != null) {
-                Schema returnTypeSchema = resolvedSchema.schema;
-                Content content = new Content();
-                MediaType mediaType = new MediaType().schema(returnTypeSchema);
-                AnnotationsUtils.applyTypes(new String[0], new String[]{DEFAULT_MEDIA_TYPE_VALUE}, content, mediaType);
-                if (operation.getResponses() == null) {
-                    operation.responses(
-                            new ApiResponses().addApiResponse(DEFAULT_RESPONSE_STATUS,
-                                    new ApiResponse().description(DEFAULT_DESCRIPTION).content(content))
-                    );
-                }
-                ApiResponse defaultApiResponse = operation.getResponses().get(DEFAULT_RESPONSE_STATUS);
-                if (defaultApiResponse != null &&
-                        StringUtils.isBlank(defaultApiResponse.get$ref())) {
-                    if (defaultApiResponse.getContent() == null) {
-                        defaultApiResponse.content(content);
-                    } else {
-                        for (String key : defaultApiResponse.getContent().keySet()) {
-                            if (defaultApiResponse.getContent().get(key).getSchema() == null) {
-                                defaultApiResponse.getContent().get(key).setSchema(returnTypeSchema);
-                            }
-                        }
-                    }
-                } else {
-                    operation.getResponses().addApiResponse(DEFAULT_RESPONSE_STATUS,
-                            new ApiResponse().description(DEFAULT_DESCRIPTION).content(content));
-                }
-                Map<String, Schema> schemaMap = resolvedSchema.referencedSchemas;
-                if (schemaMap != null) {
-                    schemaMap.forEach((key, schema) -> components.addSchemas(key, schema));
-                }
-
-            }
-        }
-        if (operation.getResponses() == null || operation.getResponses().isEmpty()) {
-            Content content = new Content();
-            MediaType mediaType = new MediaType();
-            AnnotationsUtils.applyTypes(new String[0], new String[0], content, mediaType);
-
-            ApiResponse apiResponseObject = new ApiResponse().description(DEFAULT_DESCRIPTION).content(content);
-            operation.setResponses(new ApiResponses()._default(apiResponseObject));
-        }
-
-        return operation;
-    }
-
-    private boolean shouldIgnoreClass(String className) {
-        if (StringUtils.isBlank(className)) {
-            return true;
-        }
-        boolean ignore = false;
-        String rawClassName = className;
-        if (rawClassName.startsWith("[")) { // jackson JavaType
-            rawClassName = className.replace("[simple type, class ", "");
-            rawClassName = rawClassName.substring(0, rawClassName.length() - 1);
-        }
-        ignore = rawClassName.startsWith("org.springframework.");
-        ignore = ignore || rawClassName.equalsIgnoreCase("void");
-        ignore = ignore || ModelConverters.getInstance().isRegisteredAsSkippedClass(rawClassName);
-        return ignore;
-    }
-
-    private Map<String, Callback> getCallbacks(
-            io.swagger.v3.oas.annotations.callbacks.Callback apiCallback,
-            RequestMapping methodConsumes,
-            RequestMapping classConsumes,
-            JsonView jsonViewAnnotation) {
-        Map<String, Callback> callbackMap = new HashMap<>();
-        if (apiCallback == null) {
-            return callbackMap;
-        }
-
-        Callback callbackObject = new Callback();
-        if (StringUtils.isNotBlank(apiCallback.ref())) {
-            callbackObject.set$ref(apiCallback.ref());
-            callbackMap.put(apiCallback.name(), callbackObject);
-            return callbackMap;
-        }
-        PathItem pathItemObject = new PathItem();
-        for (io.swagger.v3.oas.annotations.Operation callbackOperation : apiCallback.operation()) {
-            Operation callbackNewOperation = new Operation();
-            setOperationObjectFromApiOperationAnnotation(
-                    callbackNewOperation,
-                    callbackOperation,
-                    methodConsumes,
-                    classConsumes,
-                    jsonViewAnnotation);
-            setPathItemOperation(pathItemObject, callbackOperation.method(), callbackNewOperation);
-        }
-
-        callbackObject.addPathItem(apiCallback.callbackUrlExpression(), pathItemObject);
-        callbackMap.put(apiCallback.name(), callbackObject);
-
-        return callbackMap;
-    }
-
-    @Deprecated
-    private void setPathItemOperation(PathItem pathItemObject, String method, Operation operation) {
-        OpenApiMethod.fromName(method).pathItemSetter.apply(pathItemObject, operation);
-    }
-
-    private void setOperationObjectFromApiOperationAnnotation(
-            Operation operation,
-            io.swagger.v3.oas.annotations.Operation apiOperation,
-            RequestMapping methodConsumes,
-            RequestMapping classConsumes,
-            JsonView jsonViewAnnotation) {
-        if (StringUtils.isNotBlank(apiOperation.summary())) {
-            operation.setSummary(apiOperation.summary());
-        }
-        if (StringUtils.isNotBlank(apiOperation.description())) {
-            operation.setDescription(apiOperation.description());
-        }
-        if (StringUtils.isNotBlank(apiOperation.operationId())) {
-            operation.setOperationId(getOperationId(apiOperation.operationId()));
-        }
-        if (apiOperation.deprecated()) {
-            operation.setDeprecated(apiOperation.deprecated());
-        }
-
-        ReaderUtils.getStringListFromStringArray(apiOperation.tags()).ifPresent(tags -> {
-            tags.stream()
-                    .filter(t -> operation.getTags() == null || (operation.getTags() != null && !operation.getTags().contains(t)))
-                    .forEach(operation::addTagsItem);
-        });
-
-        if (operation.getExternalDocs() == null) { // if not set in root annotation
-            AnnotationsUtils.getExternalDocumentation(apiOperation.externalDocs()).ifPresent(operation::setExternalDocs);
-        }
-
-        OperationParser.getApiResponses(apiOperation.responses(), null, null, components, jsonViewAnnotation).ifPresent(responses -> {
-            if (operation.getResponses() == null) {
-                operation.setResponses(responses);
-            } else {
-                responses.forEach(operation.getResponses()::addApiResponse);
-            }
-        });
-        AnnotationsUtils.getServers(apiOperation.servers()).ifPresent(servers -> servers.forEach(operation::addServersItem));
-
-        getParametersListFromAnnotation(
-                apiOperation.parameters(),
-                classConsumes,
-                methodConsumes,
-                operation,
-                jsonViewAnnotation).ifPresent(p -> p.forEach(operation::addParametersItem));
-
-        // security
-        Optional<List<SecurityRequirement>> requirementsObject = SecurityParser.getSecurityRequirements(apiOperation.security());
-        if (requirementsObject.isPresent()) {
-            requirementsObject.get().stream()
-                    .filter(r -> operation.getSecurity() == null || !operation.getSecurity().contains(r))
-                    .forEach(operation::addSecurityItem);
-        }
-
-        // RequestBody in Operation
-        if (apiOperation.requestBody() != null && operation.getRequestBody() == null) {
-            OperationParser.getRequestBody(apiOperation.requestBody(), classConsumes, methodConsumes, components, jsonViewAnnotation)
-                    .ifPresent(operation::setRequestBody);
-        }
-
-        // Extensions in Operation
-        if (apiOperation.extensions().length > 0) {
-            Map<String, Object> extensions = AnnotationsUtils.getExtensions(apiOperation.extensions());
-            for (String ext : extensions.keySet()) {
-                operation.addExtension(ext, extensions.get(ext));
-            }
-        }
-    }
-
-    protected String getOperationId(String operationId) {
-        boolean operationIdUsed = existOperationId(operationId);
-        String operationIdToFind = null;
-        int counter = 0;
-        while (operationIdUsed) {
-            operationIdToFind = String.format("%s_%d", operationId, ++counter);
-            operationIdUsed = existOperationId(operationIdToFind);
-        }
-        if (operationIdToFind != null) {
-            operationId = operationIdToFind;
-        }
-        return operationId;
-    }
-
-    private boolean existOperationId(String operationId) {
-        if (openAPI == null) {
-            return false;
-        }
-        if (openAPI.getPaths() == null || openAPI.getPaths().isEmpty()) {
-            return false;
-        }
-        for (PathItem path : openAPI.getPaths().values()) {
-            Set<String> pathOperationIds = extractOperationIdFromPathItem(path);
-            if (pathOperationIds.contains(operationId)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    protected Optional<List<Parameter>> getParametersListFromAnnotation(io.swagger.v3.oas.annotations.Parameter[] parameters, RequestMapping classConsumes, RequestMapping methodConsumes, Operation operation, JsonView jsonViewAnnotation) {
-        if (parameters == null) {
-            return Optional.empty();
-        }
-        List<Parameter> parametersObject = new ArrayList<>();
-        for (io.swagger.v3.oas.annotations.Parameter parameter : parameters) {
-
-            ResolvedParameter resolvedParameter = getParameters(ParameterProcessor.getParameterType(parameter), Collections.singletonList(parameter), operation, classConsumes, methodConsumes, jsonViewAnnotation);
-            parametersObject.addAll(resolvedParameter.parameters);
-        }
-        if (parametersObject.size() == 0) {
-            return Optional.empty();
-        }
-        return Optional.of(parametersObject);
-    }
-
-    @Deprecated
-    protected ResolvedParameter getParameters(Type type, List<Annotation> annotations, Operation operation, RequestMapping classConsumes,
-                                              RequestMapping methodConsumes, JsonView jsonViewAnnotation) {
-        final Iterator<OpenAPIExtension> chain = OpenAPIExtensions.chain();
-        if (!chain.hasNext()) {
-            return new ResolvedParameter();
-        }
-        log.debug("getParameters for {}", type);
-        Set<Type> typesToSkip = new HashSet<>();
-        final OpenAPIExtension extension = chain.next();
-        log.debug("trying extension {}", extension);
-
-        final ResolvedParameter extractParametersResult = extension.extractParameters(annotations, type, typesToSkip, components, classConsumes, methodConsumes, true, jsonViewAnnotation, chain);
-        return extractParametersResult;
-    }
-
-    private Set<String> extractOperationIdFromPathItem(PathItem path) {
-        Set<String> ids = new HashSet<>();
-        if (path.getGet() != null && StringUtils.isNotBlank(path.getGet().getOperationId())) {
-            ids.add(path.getGet().getOperationId());
-        }
-        if (path.getPost() != null && StringUtils.isNotBlank(path.getPost().getOperationId())) {
-            ids.add(path.getPost().getOperationId());
-        }
-        if (path.getPut() != null && StringUtils.isNotBlank(path.getPut().getOperationId())) {
-            ids.add(path.getPut().getOperationId());
-        }
-        if (path.getDelete() != null && StringUtils.isNotBlank(path.getDelete().getOperationId())) {
-            ids.add(path.getDelete().getOperationId());
-        }
-        if (path.getOptions() != null && StringUtils.isNotBlank(path.getOptions().getOperationId())) {
-            ids.add(path.getOptions().getOperationId());
-        }
-        if (path.getHead() != null && StringUtils.isNotBlank(path.getHead().getOperationId())) {
-            ids.add(path.getHead().getOperationId());
-        }
-        if (path.getPatch() != null && StringUtils.isNotBlank(path.getPatch().getOperationId())) {
-            ids.add(path.getPatch().getOperationId());
-        }
-        return ids;
-    }
-
-    protected boolean isOperationHidden(Method method) {
-        io.swagger.v3.oas.annotations.Operation apiOperation = ReflectionUtils.getAnnotation(method, io.swagger.v3.oas.annotations.Operation.class);
-        if (apiOperation != null && apiOperation.hidden()) {
-            return true;
-        }
-        Hidden hidden = method.getAnnotation(Hidden.class);
-        if (hidden != null) {
-            return true;
-        }
-        if (config != null && !Boolean.TRUE.equals(config.isReadAllResources()) && apiOperation == null) {
-            return true;
-        }
-        return false;
-    }
-
-    protected boolean ignoreOperationPath(String path, String parentPath) {
-
-        if (StringUtils.isBlank(path) && StringUtils.isBlank(parentPath)) {
-            return true;
-        } else if (StringUtils.isNotBlank(path) && StringUtils.isBlank(parentPath)) {
-            return false;
-        } else if (StringUtils.isBlank(path) && StringUtils.isNotBlank(parentPath)) {
-            return false;
-        }
-        if (parentPath != null && !"".equals(parentPath) && !"/".equals(parentPath)) {
-            if (!parentPath.startsWith("/")) {
-                parentPath = "/" + parentPath;
-            }
-            if (parentPath.endsWith("/")) {
-                parentPath = parentPath.substring(0, parentPath.length() - 1);
-            }
-        }
-        if (path != null && !"".equals(path) && !"/".equals(path)) {
-            if (!path.startsWith("/")) {
-                path = "/" + path;
-            }
-            if (path.endsWith("/")) {
-                path = path.substring(0, path.length() - 1);
-            }
-        }
-        if (path.equals(parentPath)) {
-            return true;
-        }
-        return false;
-    }
-
-    protected Class<?> getSubResourceWithJaxRsSubresourceLocatorSpecs(Method method) {
-        final Class<?> rawType = method.getReturnType();
-        final Class<?> type;
-        if (Class.class.equals(rawType)) {
-            type = getClassArgument(method.getGenericReturnType());
-            if (type == null) {
-                return null;
-            }
-        } else {
-            type = rawType;
-        }
-
-        if (method.getAnnotation(RequestMapping.class) != null) {
-            if (ReaderUtils.extractOperationMethod(method, null) == null) {
-                return type;
-            }
-        }
-        return null;
-    }
-
-    private static Class<?> getClassArgument(Type cls) {
-        if (cls instanceof ParameterizedType) {
-            final ParameterizedType parameterized = (ParameterizedType) cls;
-            final Type[] args = parameterized.getActualTypeArguments();
-            if (args.length != 1) {
-                log.error("Unexpected class definition: {}", cls);
-                return null;
-            }
-            final Type first = args[0];
-            if (first instanceof Class) {
-                return (Class<?>) first;
-            } else {
-                return null;
-            }
-        } else {
-            log.error("Unknown class definition: {}", cls);
-            return null;
-        }
-    }
 }

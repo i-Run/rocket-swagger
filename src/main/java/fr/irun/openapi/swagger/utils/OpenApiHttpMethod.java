@@ -8,7 +8,7 @@ import java.util.NoSuchElementException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public enum OpenApiMethod {
+public enum OpenApiHttpMethod {
     GET(HttpMethod.GET.name(), PathItem::get, PathItem::getGet),
     PUT(HttpMethod.PUT.name(), PathItem::put, PathItem::getPut),
     POST(HttpMethod.POST.name(), PathItem::post, PathItem::getPost),
@@ -22,18 +22,18 @@ public enum OpenApiMethod {
     public final BiFunction<PathItem, Operation, PathItem> pathItemSetter;
     public final Function<PathItem, Operation> pathItemGetter;
 
-    private static final OpenApiMethod[] VALUES = values();
+    private static final OpenApiHttpMethod[] VALUES = values();
 
-    OpenApiMethod(String name,
-                  BiFunction<PathItem, Operation, PathItem> pathItemSetter, Function<PathItem, Operation> pathItemGetter) {
+    OpenApiHttpMethod(String name,
+                      BiFunction<PathItem, Operation, PathItem> pathItemSetter, Function<PathItem, Operation> pathItemGetter) {
         this.name = name;
         this.pathItemSetter = pathItemSetter;
         this.pathItemGetter = pathItemGetter;
 
     }
 
-    public static OpenApiMethod fromName(String name) {
-        for (OpenApiMethod value : VALUES) {
+    public static OpenApiHttpMethod fromName(String name) {
+        for (OpenApiHttpMethod value : VALUES) {
             if (value.name.equalsIgnoreCase(name)) {
                 return value;
             }

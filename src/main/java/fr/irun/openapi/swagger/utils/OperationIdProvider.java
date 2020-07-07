@@ -14,21 +14,25 @@ import java.util.Set;
 public final class OperationIdProvider {
     private final Set<String> usedOperationIds;
 
-    public OperationIdProvider(OpenAPI openAPI) {
-        Objects.requireNonNull(openAPI, "OpenAPI must not be null !");
+    public OperationIdProvider() {
         usedOperationIds = Sets.newHashSet();
+    }
+
+    public OperationIdProvider load(OpenAPI openAPI) {
+        Objects.requireNonNull(openAPI, "OpenAPI must not be null !");
         Paths paths = openAPI.getPaths();
         if (paths == null || paths.isEmpty()) {
-            return;
+            return this;
         }
         for (PathItem path : openAPI.getPaths().values()) {
-            for (OpenApiMethod value : OpenApiMethod.values()) {
+            for (OpenApiHttpMethod value : OpenApiHttpMethod.values()) {
                 Optional.ofNullable(value.pathItemGetter.apply(path))
                         .map(Operation::getOperationId)
                         .filter(StringUtils::isNotBlank)
                         .ifPresent(usedOperationIds::add);
             }
         }
+        return this;
     }
 
     /**
