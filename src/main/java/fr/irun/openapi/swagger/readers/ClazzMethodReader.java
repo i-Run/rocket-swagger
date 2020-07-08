@@ -65,6 +65,7 @@ public final class ClazzMethodReader {
     public static final String DEFAULT_MEDIA_TYPE_VALUE = org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
     public static final ImmutableSet<Class<? extends Annotation>> ANNOTATION_TYPES = ImmutableSet.of(
             RequestParam.class, PathVariable.class, MatrixVariable.class, RequestHeader.class, CookieValue.class);
+    public static final String DEFAULT_STATUS = "200";
 
     private final boolean isReadAllResources;
     private final Collection<String> ignoredRoutes;
@@ -369,22 +370,23 @@ public final class ClazzMethodReader {
                 Content content = new Content();
                 MediaType mediaType = new MediaType().schema(returnTypeSchema);
                 AnnotationsUtils.applyTypes(classMapping != null ? classMapping.produces() : new String[0], methodMapping.produces(), content, mediaType);
-                if (operation.getResponses() == null) {
-                    operation.responses(
-                            new ApiResponses().addApiResponse("200",
-                                    new ApiResponse().description(SpringOpenApiReader.DEFAULT_DESCRIPTION)
-                                            .content(content)
-                            )
-                    );
+                ApiResponses apiResponsesModel = Optional.ofNullable(operation.getResponses())
+                        .orElseGet(ApiResponses::new);
+                operation.responses(apiResponsesModel);
+                if (apiResponsesModel.get(DEFAULT_STATUS) == null) {
+                    apiResponsesModel.addApiResponse(DEFAULT_STATUS,
+                            new ApiResponse().description(SpringOpenApiReader.DEFAULT_DESCRIPTION)
+                                    .content(content));
                 }
-                if (operation.getResponses().getDefault() != null &&
-                        StringUtils.isBlank(operation.getResponses().getDefault().get$ref())) {
-                    if (operation.getResponses().getDefault().getContent() == null) {
-                        operation.getResponses().getDefault().content(content);
+                ApiResponse defaultApiResponse = operation.getResponses().get(DEFAULT_STATUS);
+                if (defaultApiResponse != null &&
+                        StringUtils.isBlank(defaultApiResponse.get$ref())) {
+                    if (defaultApiResponse.getContent() == null) {
+                        defaultApiResponse.content(content);
                     } else {
-                        for (String key : operation.getResponses().getDefault().getContent().keySet()) {
-                            if (operation.getResponses().getDefault().getContent().get(key).getSchema() == null) {
-                                operation.getResponses().getDefault().getContent().get(key).setSchema(returnTypeSchema);
+                        for (String key : defaultApiResponse.getContent().keySet()) {
+                            if (defaultApiResponse.getContent().get(key).getSchema() == null) {
+                                defaultApiResponse.getContent().get(key).setSchema(returnTypeSchema);
                             }
                         }
                     }
