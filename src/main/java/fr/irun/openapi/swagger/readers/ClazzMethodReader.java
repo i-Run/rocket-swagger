@@ -309,9 +309,6 @@ public final class ClazzMethodReader {
             OperationParser.getRequestBody(apiRequestBody, classMapping, methodMapping, components, jsonViewAnnotation)
                     .ifPresent(operation::setRequestBody);
         }
-        if (operation.getRequestBody() == null) {
-
-        }
 
         // operation id
         if (StringUtils.isBlank(operation.getOperationId())) {

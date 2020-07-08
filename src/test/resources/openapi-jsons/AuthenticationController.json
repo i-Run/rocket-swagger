@@ -4,6 +4,7 @@
     "title" : "test",
     "version" : "1.0.0"
   },
+  "tags":[{"name":"security"}],
   "paths" : {
     "/login" : {
       "post" : {

@@ -1,7 +1,5 @@
 package fr.irun.openapi.swagger.readers;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import fr.irun.openapi.swagger.utils.OpenAPIComponentsHelper;
 import fr.irun.openapi.swagger.utils.OpenApiHttpMethod;
@@ -9,7 +7,6 @@ import fr.irun.openapi.swagger.utils.OperationIdProvider;
 import fr.irun.openapi.swagger.utils.ReaderUtils;
 import io.swagger.v3.core.util.AnnotationsUtils;
 import io.swagger.v3.core.util.ReflectionUtils;
-import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.integration.ContextUtils;
@@ -20,8 +17,6 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
-import io.swagger.v3.oas.models.parameters.Parameter;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -32,15 +27,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 public class SpringOpenApiReader implements OpenApiReader {
@@ -197,28 +193,21 @@ public class SpringOpenApiReader implements OpenApiReader {
         // class tags, consider only name to add to class operations
         io.swagger.v3.oas.annotations.tags.Tag[] apiTags =
                 ReflectionUtils.getRepeatableAnnotationsArray(cls, io.swagger.v3.oas.annotations.tags.Tag.class);
-        final Set<String> classTags = new LinkedHashSet<>();
         if (apiTags != null) {
-            AnnotationsUtils.getTags(apiTags, false).ifPresent(tags ->
-                    tags.stream()
-                            .map(Tag::getName)
-                            .forEach(classTags::add)
-            );
+            AnnotationsUtils.getTags(apiTags, false)
+                    .ifPresent(tags -> tags.forEach(globalElementReader.getTags()::add));
         }
 
         // servers
-        final List<io.swagger.v3.oas.models.servers.Server> classServers = new ArrayList<>();
         if (apiServers != null) {
-            AnnotationsUtils.getServers(apiServers).ifPresent(classServers::addAll);
+            AnnotationsUtils.getServers(apiServers).ifPresent(globalElementReader.getServers()::addAll);
         }
 
-        final List<Parameter> globalParameters = new ArrayList<>();
-
         // look for constructor-level annotated properties
-        globalParameters.addAll(ReaderUtils.collectConstructorParameters(cls, globalElementReader.getComponents(), apiRequestMapping, null));
+        globalElementReader.getParameters().addAll(ReaderUtils.collectConstructorParameters(cls, globalElementReader.getComponents(), apiRequestMapping, null));
 
         // look for field-level annotated properties
-        globalParameters.addAll(ReaderUtils.collectFieldParameters(cls, globalElementReader.getComponents(), apiRequestMapping, null));
+        globalElementReader.getParameters().addAll(ReaderUtils.collectFieldParameters(cls, globalElementReader.getComponents(), apiRequestMapping, null));
 
         OperationIdProvider operationIdProvider = new OperationIdProvider().load(openAPI);
         OperationReader operationReader = new OperationReader(operationIdProvider, globalElementReader, Iterators.getLast(OpenAPIExtensions.chain()));
@@ -260,24 +249,13 @@ public class SpringOpenApiReader implements OpenApiReader {
         }
 
         // add tags from class to definition tags
-        final Set<Tag> openApiTags = globalElementReader.getTags();
-        AnnotationsUtils.getTags(apiTags, true).ifPresent(openApiTags::addAll);
-
-        if (!openApiTags.isEmpty()) {
-            Set<Tag> tagsSet = new LinkedHashSet<>();
-            if (openAPI.getTags() != null) {
-                for (Tag tag : openAPI.getTags()) {
-                    if (tagsSet.stream().noneMatch(t -> t.getName().equals(tag.getName()))) {
-                        tagsSet.add(tag);
-                    }
-                }
-            }
-            for (Tag tag : openApiTags) {
-                if (tagsSet.stream().noneMatch(t -> t.getName().equals(tag.getName()))) {
-                    tagsSet.add(tag);
-                }
-            }
-            openAPI.setTags(new ArrayList<>(tagsSet));
+        List<Tag> globalTagsSection = Stream.concat(globalElementReader.getTags().stream(),
+                Optional.ofNullable(openAPI.getTags()).map(List::stream).orElse(Stream.empty()))
+                .distinct()
+                .sorted(Comparator.comparing(Tag::getName))
+                .collect(Collectors.toList());
+        if (!globalTagsSection.isEmpty()) {
+            openAPI.tags(globalTagsSection);
         }
 
         return openAPI;
