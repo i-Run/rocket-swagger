@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import java.util.Map;
 import java.util.Optional;
 
-public class OperationParser {
+public final class OperationParser {
+    private OperationParser() {
+    }
 
     public static Optional<RequestBody> getRequestBody(
             io.swagger.v3.oas.annotations.parameters.RequestBody requestBody,
@@ -52,8 +54,11 @@ public class OperationParser {
         if (isEmpty) {
             return Optional.empty();
         }
-        AnnotationsUtils.getContent(requestBody.content(), classConsumes == null ? new String[0] : classConsumes.value(),
-                methodConsumes == null ? new String[0] : methodConsumes.value(), null, components, jsonViewAnnotation).ifPresent(requestBodyObject::setContent);
+        AnnotationsUtils.getContent(
+                requestBody.content(), classConsumes == null ? new String[0] : classConsumes.value(),
+                methodConsumes == null ? new String[0] : methodConsumes.value(),
+                null, components, jsonViewAnnotation)
+                .ifPresent(requestBodyObject::setContent);
         return Optional.of(requestBodyObject);
     }
 
@@ -85,10 +90,14 @@ public class OperationParser {
                 }
             }
 
-            AnnotationsUtils.getContent(response.content(), classProduces == null ? new String[0] : classProduces.value(),
-                    methodProduces == null ? new String[0] : methodProduces.value(), null, components, jsonViewAnnotation).ifPresent(apiResponseObject::content);
+            AnnotationsUtils.getContent(response.content(),
+                    classProduces == null ? new String[0] : classProduces.value(),
+                    methodProduces == null ? new String[0] : methodProduces.value(),
+                    null, components, jsonViewAnnotation)
+                    .ifPresent(apiResponseObject::content);
             AnnotationsUtils.getHeaders(response.headers(), jsonViewAnnotation).ifPresent(apiResponseObject::headers);
-            if (StringUtils.isNotBlank(apiResponseObject.getDescription()) || apiResponseObject.getContent() != null || apiResponseObject.getHeaders() != null) {
+            if (StringUtils.isNotBlank(apiResponseObject.getDescription())
+                    || apiResponseObject.getContent() != null || apiResponseObject.getHeaders() != null) {
 
                 Map<String, Link> links = AnnotationsUtils.getLinks(response.links());
                 if (links.size() > 0) {

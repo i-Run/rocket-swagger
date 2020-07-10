@@ -7,6 +7,7 @@ import io.swagger.v3.oas.models.security.OAuthFlows;
 import io.swagger.v3.oas.models.security.Scopes;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
@@ -15,14 +16,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class SecurityParser {
+public final class SecurityParser {
 
-    public static class SecuritySchemePair {
-        public String key;
-        public SecurityScheme securityScheme;
+    private SecurityParser() {
     }
 
-    public static Optional<List<SecurityRequirement>> getSecurityRequirements(io.swagger.v3.oas.annotations.security.SecurityRequirement... securityRequirementsApi) {
+    @AllArgsConstructor
+    public static class SecuritySchemePair {
+        public final String key;
+        public final SecurityScheme securityScheme;
+    }
+
+    public static Optional<List<SecurityRequirement>> getSecurityRequirements(
+            io.swagger.v3.oas.annotations.security.SecurityRequirement... securityRequirementsApi) {
+
         if (securityRequirementsApi == null || securityRequirementsApi.length == 0) {
             return Optional.empty();
         }
@@ -91,10 +98,7 @@ public class SecurityParser {
 
         getOAuthFlows(securityScheme.flows()).ifPresent(securitySchemeObject::setFlows);
 
-        SecuritySchemePair result = new SecuritySchemePair();
-        result.key = key;
-        result.securityScheme = securitySchemeObject;
-        return Optional.of(result);
+        return Optional.of(new SecuritySchemePair(key, securitySchemeObject));
     }
 
     public static Optional<OAuthFlows> getOAuthFlows(io.swagger.v3.oas.annotations.security.OAuthFlows oAuthFlows) {

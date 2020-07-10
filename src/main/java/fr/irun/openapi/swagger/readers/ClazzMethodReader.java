@@ -114,8 +114,8 @@ public final class ClazzMethodReader {
             jsonViewAnnotationForRequestBody = null;
         } else {
             jsonViewAnnotation = ReflectionUtils.getAnnotation(method, JsonView.class);
-                    /* If one and only one exists, use the @JsonView annotation from the method parameter annotated
-                       with @RequestBody. Otherwise fall back to the @JsonView annotation for the method itself. */
+            // If one and only one exists, use the @JsonView annotation from the method parameter annotated
+            // with @RequestBody. Otherwise fall back to the @JsonView annotation for the method itself.
             jsonViewAnnotationForRequestBody = (JsonView) Arrays.stream(ReflectionUtils.getParameterAnnotations(method))
                     .filter(arr -> Arrays.stream(arr).anyMatch(annotation ->
                             annotation.annotationType()
@@ -129,7 +129,8 @@ public final class ClazzMethodReader {
 
         io.swagger.v3.oas.annotations.responses.ApiResponse[] classResponses =
                 ReflectionUtils.getRepeatableAnnotationsArray(method.getDeclaringClass(), io.swagger.v3.oas.annotations.responses.ApiResponse.class);
-        io.swagger.v3.oas.models.Operation operation = parseMethod(method, methodRequestMapping, clazzRequestMappingAnnotation, jsonViewAnnotation, classResponses);
+        io.swagger.v3.oas.models.Operation operation = parseMethod(
+                method, methodRequestMapping, clazzRequestMappingAnnotation, jsonViewAnnotation, classResponses);
 
         List<Parameter> operationParameters = new ArrayList<>();
         List<Parameter> formParameters = new ArrayList<>();
@@ -154,7 +155,8 @@ public final class ClazzMethodReader {
                         }
                     }).collect(Collectors.toSet());
 
-            io.swagger.v3.oas.annotations.Parameter paramAnnotation = AnnotationUtils.getAnnotation(parameter, io.swagger.v3.oas.annotations.Parameter.class);
+            io.swagger.v3.oas.annotations.Parameter paramAnnotation = AnnotationUtils.getAnnotation(
+                    parameter, io.swagger.v3.oas.annotations.Parameter.class);
             if (paramAnnotation != null) {
                 annotations.add(paramAnnotation);
             }

@@ -4,14 +4,13 @@ import com.google.common.base.Strings;
 import fr.irun.openapi.swagger.utils.OpenAPIComponentsHelper;
 import io.swagger.v3.core.util.ReflectionUtils;
 import io.swagger.v3.oas.models.security.SecurityScheme;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 
 import java.util.List;
 import java.util.Map;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class OpenAPIComponentsReader {
+    private OpenAPIComponentsReader() {
+    }
 
     public static Map<String, SecurityScheme> readSecuritySchemes(Class<?> clazz) {
         Map<String, SecurityScheme> schemes = OpenAPIComponentsHelper.SECURITY_SCHEMES.newMap();

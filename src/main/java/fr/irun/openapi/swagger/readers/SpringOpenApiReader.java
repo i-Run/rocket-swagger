@@ -161,8 +161,6 @@ public class SpringOpenApiReader implements OpenApiReader {
 
         log.debug("read class {}, parentPath: {}...", cls, parentPath);
 
-        GlobalElementReader globalElementReader = new GlobalElementReader(openAPI);
-
         Hidden hidden = cls.getAnnotation(Hidden.class);
 
         boolean isRestController = AnnotatedElementUtils.isAnnotated(cls, RestController.class);
@@ -182,10 +180,9 @@ public class SpringOpenApiReader implements OpenApiReader {
             return openAPI;
         }
 
-        io.swagger.v3.oas.annotations.servers.Server[] apiServers =
-                ReflectionUtils.getRepeatableAnnotationsArray(cls, io.swagger.v3.oas.annotations.servers.Server.class);
-
         readOpenAPIDefinition(cls);
+
+        final GlobalElementReader globalElementReader = new GlobalElementReader(openAPI);
 
         OpenAPIComponentsReader.readSecuritySchemes(cls)
                 .forEach(globalElementReader.getComponents()::addSecuritySchemes);
@@ -199,15 +196,19 @@ public class SpringOpenApiReader implements OpenApiReader {
         }
 
         // servers
+        io.swagger.v3.oas.annotations.servers.Server[] apiServers =
+                ReflectionUtils.getRepeatableAnnotationsArray(cls, io.swagger.v3.oas.annotations.servers.Server.class);
         if (apiServers != null) {
             AnnotationsUtils.getServers(apiServers).ifPresent(globalElementReader.getServers()::addAll);
         }
 
         // look for constructor-level annotated properties
-        globalElementReader.getParameters().addAll(ReaderUtils.collectConstructorParameters(cls, globalElementReader.getComponents(), apiRequestMapping, null));
+        globalElementReader.getParameters().addAll(
+                ReaderUtils.collectConstructorParameters(cls, globalElementReader.getComponents(), apiRequestMapping, null));
 
         // look for field-level annotated properties
-        globalElementReader.getParameters().addAll(ReaderUtils.collectFieldParameters(cls, globalElementReader.getComponents(), apiRequestMapping, null));
+        globalElementReader.getParameters().addAll(
+                ReaderUtils.collectFieldParameters(cls, globalElementReader.getComponents(), apiRequestMapping, null));
 
         OperationIdProvider operationIdProvider = new OperationIdProvider().load(openAPI);
         OperationReader operationReader = new OperationReader(operationIdProvider, globalElementReader, Iterators.getLast(OpenAPIExtensions.chain()));

@@ -1,17 +1,18 @@
 package fr.irun.openapi.swagger.readers;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ServiceLoader;
 
-public class OpenAPIExtensions {
-    private static Logger LOGGER = LoggerFactory.getLogger(OpenAPIExtensions.class);
+@Slf4j
+public final class OpenAPIExtensions {
+    private static List<OpenAPIExtension> extensions;
 
-    private static List<OpenAPIExtension> extensions = null;
+    private OpenAPIExtensions() {
+    }
 
     public static List<OpenAPIExtension> getExtensions() {
         return extensions;
@@ -29,7 +30,7 @@ public class OpenAPIExtensions {
         extensions = new ArrayList<>();
         ServiceLoader<OpenAPIExtension> loader = ServiceLoader.load(OpenAPIExtension.class);
         for (OpenAPIExtension ext : loader) {
-            LOGGER.debug("adding extension " + ext);
+            log.debug("adding extension " + ext);
             extensions.add(ext);
         }
         extensions.add(new DefaultParameterExtension());

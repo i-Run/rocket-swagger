@@ -36,6 +36,7 @@ public class DefaultParameterExtension extends AbstractOpenAPIExtension {
     final ObjectMapper mapper = Json.mapper();
 
     @Override
+    @SuppressWarnings("checkstyle:parameternumber")
     public ResolvedParameter extractParameters(List<Annotation> annotations,
                                                Type type,
                                                Set<Type> typesToSkip,
@@ -95,7 +96,9 @@ public class DefaultParameterExtension extends AbstractOpenAPIExtension {
             } else {
                 List<Parameter> formParameters = new ArrayList<>();
                 List<Parameter> parameters = new ArrayList<>();
-                if (handleAdditionalAnnotation(parameters, formParameters, annotation, type, typesToSkip, classConsumes, methodConsumes, components, includeRequestBody, jsonViewAnnotation)) {
+                if (handleAdditionalAnnotation(
+                        parameters, formParameters, annotation, type, typesToSkip, classConsumes, methodConsumes,
+                        components, includeRequestBody, jsonViewAnnotation)) {
                     ResolvedParameter extractParametersResult = new ResolvedParameter();
                     extractParametersResult.parameters.addAll(parameters);
                     extractParametersResult.formParameters.addAll(formParameters);
@@ -122,7 +125,7 @@ public class DefaultParameterExtension extends AbstractOpenAPIExtension {
                 } else if (FORM_PARAM.equals(unknownParameter.getIn())) {
                     unknownParameter.setIn(null);
                     extractParametersResult.formParameters.add(unknownParameter);
-                } else {            // return as request body
+                } else {
                     extractParametersResult.requestBody = unknownParameter;
                 }
             }
@@ -143,9 +146,11 @@ public class DefaultParameterExtension extends AbstractOpenAPIExtension {
         return extractParametersResult;
     }
 
+    @SuppressWarnings("checkstyle:parameternumber")
     private boolean handleAdditionalAnnotation(List<Parameter> parameters, List<Parameter> formParameters, Annotation annotation,
                                                final Type type, Set<Type> typesToSkip, RequestMapping classConsumes,
-                                               RequestMapping methodConsumes, Components components, boolean includeRequestBody, JsonView jsonViewAnnotation) {
+                                               RequestMapping methodConsumes, Components components, boolean includeRequestBody,
+                                               JsonView jsonViewAnnotation) {
         boolean processed = false;
         if (RequestBody.class.isAssignableFrom(annotation.getClass())) {
             // Use Jackson's logic for processing Beans

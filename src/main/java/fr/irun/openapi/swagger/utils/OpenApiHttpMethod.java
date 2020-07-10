@@ -18,11 +18,11 @@ public enum OpenApiHttpMethod {
     OPTIONS(HttpMethod.OPTIONS.name(), PathItem::options, PathItem::getOptions),
     HEAD(HttpMethod.HEAD.name(), PathItem::head, PathItem::getHead);
 
+    private static final OpenApiHttpMethod[] VALUES = values();
+
     public final String name;
     public final BiFunction<PathItem, Operation, PathItem> pathItemSetter;
     public final Function<PathItem, Operation> pathItemGetter;
-
-    private static final OpenApiHttpMethod[] VALUES = values();
 
     OpenApiHttpMethod(String name,
                       BiFunction<PathItem, Operation, PathItem> pathItemSetter, Function<PathItem, Operation> pathItemGetter) {

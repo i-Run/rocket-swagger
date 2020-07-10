@@ -8,8 +8,6 @@ import io.swagger.v3.core.util.ParameterProcessor;
 import io.swagger.v3.core.util.ReflectionUtils;
 import io.swagger.v3.oas.integration.api.OpenAPIConfiguration;
 import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -32,8 +30,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 public final class ReaderUtils {
     private static final String PATH_DELIMITER = "/";
