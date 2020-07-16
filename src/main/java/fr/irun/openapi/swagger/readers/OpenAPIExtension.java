@@ -16,8 +16,11 @@ public interface OpenAPIExtension {
 
     String extractOperationMethod(Method method, Iterator<OpenAPIExtension> chain);
 
-    ResolvedParameter extractParameters(List<Annotation> annotations, Type type, Set<Type> typesToSkip, Components components,
-                                        RequestMapping classConsumes, RequestMapping methodConsumes, boolean includeRequestBody, JsonView jsonViewAnnotation, Iterator<OpenAPIExtension> chain);
+    @SuppressWarnings("checkstyle:parameternumber")
+    ResolvedParameter extractParameters(
+            List<Annotation> annotations, Type type, Set<Type> typesToSkip, Components components,
+            RequestMapping classConsumes, RequestMapping methodConsumes, boolean includeRequestBody,
+            JsonView jsonViewAnnotation, Iterator<OpenAPIExtension> chain);
 
     /**
      * Decorates operation with additional vendor based extensions.

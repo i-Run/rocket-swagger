@@ -140,7 +140,8 @@ public final class ClazzMethodReader {
                 continue;
             }
 
-            final Type type = TypeFactory.defaultInstance().constructType(parameterizedType, method.getDeclaringClass());
+            @SuppressWarnings("deprecation") final Type type = TypeFactory.defaultInstance()
+                    .constructType(parameterizedType, method.getDeclaringClass());
 
             Set<Annotation> annotations = ANNOTATION_TYPES.stream()
                     .map(at -> AnnotatedElementUtils.findMergedAnnotation(parameter, at))
@@ -175,12 +176,12 @@ public final class ClazzMethodReader {
                     new HashSet<>(), components, methodRequestMapping, clazzRequestMappingAnnotation,
                     true, jsonViewAnnotation, null);
 
-            operationParameters.addAll(resolvedParameter.parameters);
+            operationParameters.addAll(resolvedParameter.getParameters());
             // collect params to use together as request Body
-            formParameters.addAll(resolvedParameter.formParameters);
-            if (resolvedParameter.requestBody != null) {
+            formParameters.addAll(resolvedParameter.getFormParameters());
+            if (resolvedParameter.getRequestBody() != null) {
                 processRequestBody(
-                        resolvedParameter.requestBody, operation, methodRequestMapping, clazzRequestMappingAnnotation,
+                        resolvedParameter.getRequestBody(), operation, methodRequestMapping, clazzRequestMappingAnnotation,
                         parameter.getDeclaredAnnotations(), jsonViewAnnotationForRequestBody);
             }
         }
@@ -288,7 +289,7 @@ public final class ClazzMethodReader {
                         Collections.singletonList(parameter), ParameterProcessor.getParameterType(parameter),
                         Collections.emptySet(), components, classMapping, methodMapping,
                         true, jsonViewAnnotation, null);
-                resolvedParameter.parameters.forEach(operation::addParametersItem);
+                resolvedParameter.getParameters().forEach(operation::addParametersItem);
             }
         }
 
@@ -370,6 +371,7 @@ public final class ClazzMethodReader {
         return operation;
     }
 
+    @SuppressWarnings("rawtypes")
     private Optional<ApiResponse> extractMethodReturnType(
             Method method, RequestMapping methodMapping, RequestMapping classMapping, JsonView jsonViewAnnotation) {
         Type returnType = method.getGenericReturnType();

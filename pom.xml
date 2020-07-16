@@ -34,7 +34,7 @@
         <assertj.version>3.15.0</assertj.version>
         <mockito.version>3.3.3</mockito.version>
         <checkstyle.version>8.34</checkstyle.version>
-        <build-tools.version>1.1.1-SNAPSHOT</build-tools.version>
+        <build-tools.version>1.1.1</build-tools.version>
 
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>

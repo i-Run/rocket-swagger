@@ -128,8 +128,9 @@ public final class ReaderUtils {
         final Iterator<OpenAPIExtension> chain = OpenAPIExtensions.chain();
         return chain.hasNext()
                 ? chain.next().extractParameters(
-                annotations, type, Sets.newHashSet(), components, classConsumes, null, false, jsonViewAnnotation, chain)
-                .parameters
+                annotations, type, Sets.newHashSet(), components,
+                classConsumes, null, false,
+                jsonViewAnnotation, chain).getParameters()
                 : Collections.emptyList();
     }
 

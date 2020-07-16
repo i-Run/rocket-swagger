@@ -57,7 +57,7 @@ public final class OperationReader {
                     Collections.emptySet(), components, classConsumes, methodConsumes,
                     true, jsonViewAnnotation, null);
 
-            resolvedParameter.parameters.forEach(operation::addParametersItem);
+            resolvedParameter.getParameters().forEach(operation::addParametersItem);
         }
 
         SecurityParser.getSecurityRequirements(apiOperation.security())
