@@ -4,12 +4,16 @@ import com.fasterxml.jackson.annotation.JsonView;
 import io.swagger.v3.core.util.AnnotationsUtils;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.links.Link;
+import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Optional;
 
@@ -117,4 +121,46 @@ public final class OperationParser {
         return Optional.of(apiResponsesObject);
     }
 
+    /**
+     * Merge multiple {@link ApiResponses}
+     *
+     * @param apiResponses {@link ApiResponses} to merge, First declared override the next for the same response name
+     * @return The merged {@link ApiResponses}
+     */
+    public static ApiResponses mergeApiResponses(ApiResponses... apiResponses) {
+        ApiResponses newResponses = new ApiResponses();
+        for (ApiResponses responses : apiResponses) {
+            for (String responseName : responses.keySet()) {
+                if (!newResponses.containsKey(responseName)) {
+                    newResponses.put(responseName, responses.get(responseName));
+                } else {
+                    ApiResponse newResponse = newResponses.get(responseName);
+                    ApiResponse response = responses.get(responseName);
+                    if (newResponse != null && StringUtils.isBlank(newResponse.get$ref())) {
+                        Content newContent = newResponse.getContent();
+                        Content content = response.getContent();
+                        if (newContent == null) {
+                            newResponse.content(content);
+                        } else {
+                            for (String key : content.keySet()) {
+                                if (newContent.get(key) == null) {
+                                    newContent.addMediaType(key, content.get(key));
+                                } else if (newContent.get(key).getSchema() == null) {
+                                    newContent.get(key).setSchema(content.get(key).getSchema());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return newResponses;
+    }
+
+    public static boolean isSamePath(String path, String parentPath) {
+        Path left = Optional.of(File.separator + path).map(Paths::get).orElse(Paths.get(""));
+        Path right = Optional.of(File.separator + parentPath).map(Paths::get).orElse(Paths.get(""));
+
+        return left.toAbsolutePath().equals(right.toAbsolutePath());
+    }
 }

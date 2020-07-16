@@ -31,7 +31,6 @@ import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -88,7 +87,7 @@ public final class ClazzMethodReader {
 
         // skip if path is the same as parent, e.g. for @ApplicationPath annotated application
         // extending resource config.
-        if (ignoreOperationPath(operationPath, parentPath)) {
+        if (OperationParser.isSamePath(operationPath, parentPath)) {
             return Optional.empty();
         }
 
@@ -220,50 +219,32 @@ public final class ClazzMethodReader {
 
     private io.swagger.v3.oas.models.Operation parseMethod(
             Method method,
-            RequestMapping methodMapping,
-            RequestMapping classMapping,
+            RequestMapping methodMapping, RequestMapping classMapping,
             JsonView jsonViewAnnotation,
             io.swagger.v3.oas.annotations.responses.ApiResponse[] classResponses) {
 
         io.swagger.v3.oas.annotations.Operation apiOperation = ReflectionUtils.getAnnotation(method, io.swagger.v3.oas.annotations.Operation.class);
 
-        List<io.swagger.v3.oas.annotations.security.SecurityRequirement> apiSecurity = ReflectionUtils.getRepeatableAnnotations(method, io.swagger.v3.oas.annotations.security.SecurityRequirement.class);
-        List<io.swagger.v3.oas.annotations.callbacks.Callback> apiCallbacks = ReflectionUtils.getRepeatableAnnotations(method, io.swagger.v3.oas.annotations.callbacks.Callback.class);
-        List<Server> apiServers = ReflectionUtils.getRepeatableAnnotations(method, Server.class);
-        List<io.swagger.v3.oas.annotations.tags.Tag> apiTags = ReflectionUtils.getRepeatableAnnotations(method, io.swagger.v3.oas.annotations.tags.Tag.class);
-        List<io.swagger.v3.oas.annotations.Parameter> apiParameters = ReflectionUtils.getRepeatableAnnotations(method, io.swagger.v3.oas.annotations.Parameter.class);
-        List<io.swagger.v3.oas.annotations.responses.ApiResponse> apiResponses = ReflectionUtils.getRepeatableAnnotations(method, io.swagger.v3.oas.annotations.responses.ApiResponse.class);
-        io.swagger.v3.oas.annotations.parameters.RequestBody apiRequestBody =
-                ReflectionUtils.getAnnotation(method, io.swagger.v3.oas.annotations.parameters.RequestBody.class);
-
-        io.swagger.v3.oas.annotations.ExternalDocumentation apiExternalDocumentation = ReflectionUtils.getAnnotation(method, io.swagger.v3.oas.annotations.ExternalDocumentation.class);
+        List<io.swagger.v3.oas.annotations.security.SecurityRequirement> apiSecurity =
+                ReflectionUtils.getRepeatableAnnotations(method, io.swagger.v3.oas.annotations.security.SecurityRequirement.class);
 
         io.swagger.v3.oas.models.Operation operation = Optional.ofNullable(apiOperation)
                 .map(op -> operationReader.read(op, methodMapping, classMapping, jsonViewAnnotation))
                 .orElseGet(io.swagger.v3.oas.models.Operation::new);
 
         // callbacks
-        Map<String, Callback> callbacks = Maps.newLinkedHashMap();
-
-        if (apiCallbacks != null) {
-            for (io.swagger.v3.oas.annotations.callbacks.Callback methodCallback : apiCallbacks) {
-                Map<String, Callback> currentCallbacks = callbackReader.readCallbacks(methodCallback, methodMapping, classMapping, jsonViewAnnotation);
-                callbacks.putAll(currentCallbacks);
-            }
-        }
-        if (callbacks.size() > 0) {
+        Map<String, Callback> callbacks = callbackReader.readCallback(method, methodMapping, classMapping, jsonViewAnnotation);
+        if (!callbacks.isEmpty()) {
             operation.setCallbacks(callbacks);
         }
 
         // security
         globalElementReader.getSecurityRequirements().forEach(operation::addSecurityItem);
         if (apiSecurity != null) {
-            Optional<List<SecurityRequirement>> requirementsObject = SecurityParser.getSecurityRequirements(apiSecurity.toArray(new io.swagger.v3.oas.annotations.security.SecurityRequirement[apiSecurity.size()]));
-            if (requirementsObject.isPresent()) {
-                requirementsObject.get().stream()
-                        .filter(r -> operation.getSecurity() == null || !operation.getSecurity().contains(r))
-                        .forEach(operation::addSecurityItem);
-            }
+            SecurityParser.getSecurityRequirements(apiSecurity.toArray(new io.swagger.v3.oas.annotations.security.SecurityRequirement[0]))
+                    .ifPresent(securityRequirements -> securityRequirements.stream()
+                            .filter(r -> operation.getSecurity() == null || !operation.getSecurity().contains(r))
+                            .forEach(operation::addSecurityItem));
         }
 
         // servers
@@ -272,18 +253,22 @@ public final class ClazzMethodReader {
             classServers.forEach(operation::addServersItem);
         }
 
+        List<Server> apiServers = ReflectionUtils.getRepeatableAnnotations(method, Server.class);
         if (apiServers != null) {
-            AnnotationsUtils.getServers(apiServers.toArray(new Server[apiServers.size()]))
+            AnnotationsUtils.getServers(apiServers.toArray(new Server[0]))
                     .ifPresent(servers -> servers.forEach(operation::addServersItem));
         }
 
         // external docs
+        io.swagger.v3.oas.annotations.ExternalDocumentation apiExternalDocumentation =
+                ReflectionUtils.getAnnotation(method, io.swagger.v3.oas.annotations.ExternalDocumentation.class);
         AnnotationsUtils.getExternalDocumentation(apiExternalDocumentation).ifPresent(operation::setExternalDocs);
 
         // method tags
+        List<io.swagger.v3.oas.annotations.tags.Tag> apiTags =
+                ReflectionUtils.getRepeatableAnnotations(method, io.swagger.v3.oas.annotations.tags.Tag.class);
         if (apiTags != null) {
-            apiTags.stream()
-                    .distinct()
+            apiTags.stream().distinct()
                     .map(io.swagger.v3.oas.annotations.tags.Tag::name)
                     .forEach(operation::addTagsItem);
         }
@@ -295,18 +280,21 @@ public final class ClazzMethodReader {
             }
         }
         final Components components = globalElementReader.getComponents();
+        List<io.swagger.v3.oas.annotations.Parameter> apiParameters =
+                ReflectionUtils.getRepeatableAnnotations(method, io.swagger.v3.oas.annotations.Parameter.class);
         if (apiParameters != null) {
             for (io.swagger.v3.oas.annotations.Parameter parameter : apiParameters) {
                 ResolvedParameter resolvedParameter = extension.extractParameters(
                         Collections.singletonList(parameter), ParameterProcessor.getParameterType(parameter),
                         Collections.emptySet(), components, classMapping, methodMapping,
                         true, jsonViewAnnotation, null);
-
                 resolvedParameter.parameters.forEach(operation::addParametersItem);
             }
         }
 
         // RequestBody in Method
+        io.swagger.v3.oas.annotations.parameters.RequestBody apiRequestBody =
+                ReflectionUtils.getAnnotation(method, io.swagger.v3.oas.annotations.parameters.RequestBody.class);
         if (apiRequestBody != null && operation.getRequestBody() == null) {
             OperationParser.getRequestBody(apiRequestBody, classMapping, methodMapping, components, jsonViewAnnotation)
                     .ifPresent(operation::setRequestBody);
@@ -335,9 +323,11 @@ public final class ClazzMethodReader {
         }
 
         // apiResponses
+        List<io.swagger.v3.oas.annotations.responses.ApiResponse> apiResponses =
+                ReflectionUtils.getRepeatableAnnotations(method, io.swagger.v3.oas.annotations.responses.ApiResponse.class);
         if (apiResponses != null && apiResponses.size() > 0) {
             OperationParser.getApiResponses(
-                    apiResponses.toArray(new io.swagger.v3.oas.annotations.responses.ApiResponse[apiResponses.size()]),
+                    apiResponses.toArray(new io.swagger.v3.oas.annotations.responses.ApiResponse[0]),
                     null,
                     null,
                     components,
@@ -361,42 +351,12 @@ public final class ClazzMethodReader {
         }
 
         // handle return type, add as response in case.
-        Type returnType = method.getGenericReturnType();
-        if (!shouldIgnoreClass(returnType.getTypeName())) {
-            ResolvedSchema resolvedSchema = ModelConverters.getInstance().resolveAsResolvedSchema(new AnnotatedType(returnType).resolveAsRef(true).jsonViewAnnotation(jsonViewAnnotation));
-            if (resolvedSchema.schema != null) {
-                Schema<?> returnTypeSchema = resolvedSchema.schema;
-                Content content = new Content();
-                MediaType mediaType = new MediaType().schema(returnTypeSchema);
-                AnnotationsUtils.applyTypes(classMapping != null ? classMapping.produces() : new String[0], methodMapping.produces(), content, mediaType);
-                ApiResponses apiResponsesModel = Optional.ofNullable(operation.getResponses())
-                        .orElseGet(ApiResponses::new);
-                operation.responses(apiResponsesModel);
-                if (apiResponsesModel.get(DEFAULT_STATUS) == null) {
-                    apiResponsesModel.addApiResponse(DEFAULT_STATUS,
-                            new ApiResponse().description(SpringOpenApiReader.DEFAULT_DESCRIPTION)
-                                    .content(content));
-                }
-                ApiResponse defaultApiResponse = operation.getResponses().get(DEFAULT_STATUS);
-                if (defaultApiResponse != null &&
-                        StringUtils.isBlank(defaultApiResponse.get$ref())) {
-                    if (defaultApiResponse.getContent() == null) {
-                        defaultApiResponse.content(content);
-                    } else {
-                        for (String key : defaultApiResponse.getContent().keySet()) {
-                            if (defaultApiResponse.getContent().get(key).getSchema() == null) {
-                                defaultApiResponse.getContent().get(key).setSchema(returnTypeSchema);
-                            }
-                        }
-                    }
-                }
-                Map<String, Schema> schemaMap = resolvedSchema.referencedSchemas;
-                if (schemaMap != null) {
-                    schemaMap.forEach(components::addSchemas);
-                }
-
-            }
-        }
+        ApiResponses extractedResponses = extractMethodReturnType(method, methodMapping, classMapping, jsonViewAnnotation)
+                .map(r -> new ApiResponses().addApiResponse(DEFAULT_STATUS, r))
+                .orElseGet(ApiResponses::new);
+        ApiResponses apiResponsesModel = Optional.ofNullable(operation.getResponses())
+                .orElseGet(ApiResponses::new);
+        operation.responses(OperationParser.mergeApiResponses(apiResponsesModel, extractedResponses));
 
         if (operation.getResponses() == null || operation.getResponses().isEmpty()) {
             Content content = new Content();
@@ -408,6 +368,31 @@ public final class ClazzMethodReader {
         }
 
         return operation;
+    }
+
+    private Optional<ApiResponse> extractMethodReturnType(
+            Method method, RequestMapping methodMapping, RequestMapping classMapping, JsonView jsonViewAnnotation) {
+        Type returnType = method.getGenericReturnType();
+        if (!shouldIgnoreClass(returnType.getTypeName())) {
+            Content content = new Content();
+            ResolvedSchema resolvedSchema = ModelConverters.getInstance().resolveAsResolvedSchema(
+                    new AnnotatedType(returnType).resolveAsRef(true).jsonViewAnnotation(jsonViewAnnotation));
+            if (resolvedSchema.schema != null) {
+                Schema<?> returnTypeSchema = resolvedSchema.schema;
+                MediaType mediaType = new MediaType().schema(returnTypeSchema);
+                AnnotationsUtils.applyTypes(classMapping != null ? classMapping.produces()
+                        : new String[0], methodMapping.produces(), content, mediaType);
+                Map<String, Schema> schemaMap = resolvedSchema.referencedSchemas;
+                if (schemaMap != null) {
+                    schemaMap.forEach(globalElementReader.getComponents()::addSchemas);
+                }
+
+            }
+            return Optional.of(new ApiResponse().description(SpringOpenApiReader.DEFAULT_DESCRIPTION)
+                    .content(content));
+        }
+
+        return Optional.empty();
     }
 
     protected void processRequestBody(Parameter requestBodyParameter, io.swagger.v3.oas.models.Operation operation,
@@ -422,15 +407,15 @@ public final class ClazzMethodReader {
 
             if (optionalRequestBody.isPresent()) {
                 RequestBody requestBody = optionalRequestBody.get();
-                if (StringUtils.isBlank(requestBody.get$ref()) &&
-                        (requestBody.getContent() == null || requestBody.getContent().isEmpty())) {
+                if (StringUtils.isBlank(requestBody.get$ref())
+                        && (requestBody.getContent() == null || requestBody.getContent().isEmpty())) {
                     if (requestBodyParameter.getSchema() != null) {
                         Content content = processContent(requestBody.getContent(), requestBodyParameter.getSchema(), methodConsumes, classConsumes);
                         requestBody.setContent(content);
                     }
-                } else if (StringUtils.isBlank(requestBody.get$ref()) &&
-                        requestBody.getContent() != null &&
-                        !requestBody.getContent().isEmpty()) {
+                } else if (StringUtils.isBlank(requestBody.get$ref())
+                        && requestBody.getContent() != null
+                        && !requestBody.getContent().isEmpty()) {
                     if (requestBodyParameter.getSchema() != null) {
                         for (MediaType mediaType : requestBody.getContent().values()) {
                             if (mediaType.getSchema() == null) {
@@ -521,45 +506,17 @@ public final class ClazzMethodReader {
         return !isReadAllResources && apiOperation == null;
     }
 
-    private boolean ignoreOperationPath(String path, String parentPath) {
-
-        if (StringUtils.isBlank(path) && StringUtils.isBlank(parentPath)) {
-            return true;
-        } else if (StringUtils.isNotBlank(path) && StringUtils.isBlank(parentPath)) {
-            return false;
-        } else if (StringUtils.isBlank(path) && StringUtils.isNotBlank(parentPath)) {
-            return false;
-        }
-        if (parentPath != null && !"".equals(parentPath) && !"/".equals(parentPath)) {
-            if (!parentPath.startsWith("/")) {
-                parentPath = "/" + parentPath;
-            }
-            if (parentPath.endsWith("/")) {
-                parentPath = parentPath.substring(0, parentPath.length() - 1);
-            }
-        }
-        if (path != null && !"".equals(path) && !"/".equals(path)) {
-            if (!path.startsWith("/")) {
-                path = "/" + path;
-            }
-            if (path.endsWith("/")) {
-                path = path.substring(0, path.length() - 1);
-            }
-        }
-        return path.equals(parentPath);
-    }
-
-    private boolean shouldIgnoreClass(String className) {
+    private static boolean shouldIgnoreClass(String className) {
         if (StringUtils.isBlank(className)) {
             return true;
         }
-        boolean ignore = false;
+        boolean ignore;
         String rawClassName = className;
-        if (rawClassName.startsWith("[")) { // jackson JavaType
+        if (rawClassName.startsWith("[")) {
             rawClassName = className.replace("[simple type, class ", "");
             rawClassName = rawClassName.substring(0, rawClassName.length() - 1);
         }
-        ignore = ignore || rawClassName.startsWith("javax.ws.rs.");
+        ignore = rawClassName.startsWith("javax.ws.rs.");
         ignore = ignore || rawClassName.equalsIgnoreCase("void");
         ignore = ignore || ModelConverters.getInstance().isRegisteredAsSkippedClass(rawClassName);
         return ignore;
