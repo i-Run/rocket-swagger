@@ -33,6 +33,35 @@
         }
       }
     },
+    "/parameterWithAnnotation/{propertyPath}" : {
+      "get" : {
+        "operationId" : "parameterWithAnnotation",
+        "parameters" : [ {
+          "name" : "propertyPath",
+          "in" : "path",
+          "description" : "The user name for login",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/namedParameterWithoutAnnotation/{propertyPath}" : {
       "get" : {
         "operationId" : "namedParameterWithoutAnnotation",
@@ -138,35 +167,6 @@
         }, {
           "name" : "param3",
           "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "successful operation",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "type" : "string"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/parameterWithAnnotation/{propertyPath}" : {
-      "get" : {
-        "operationId" : "parameterWithAnnotation",
-        "parameters" : [ {
-          "name" : "propertyPath",
-          "in" : "path",
-          "description" : "The user name for login",
           "required" : true,
           "schema" : {
             "type" : "string"

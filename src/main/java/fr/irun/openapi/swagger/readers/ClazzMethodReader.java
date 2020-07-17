@@ -10,6 +10,7 @@ import com.google.common.collect.Maps;
 import fr.irun.openapi.swagger.utils.OpenApiHttpMethod;
 import fr.irun.openapi.swagger.utils.OperationIdProvider;
 import fr.irun.openapi.swagger.utils.ReaderUtils;
+import fr.irun.openapi.swagger.utils.SpringTypeResolver;
 import io.swagger.v3.core.converter.AnnotatedType;
 import io.swagger.v3.core.converter.ModelConverters;
 import io.swagger.v3.core.converter.ResolvedSchema;
@@ -374,7 +375,7 @@ public final class ClazzMethodReader {
     @SuppressWarnings("rawtypes")
     private Optional<ApiResponse> extractMethodReturnType(
             Method method, RequestMapping methodMapping, RequestMapping classMapping, JsonView jsonViewAnnotation) {
-        Type returnType = method.getGenericReturnType();
+        Type returnType = SpringTypeResolver.resolve(method.getGenericReturnType());
         if (!shouldIgnoreClass(returnType.getTypeName())) {
             Content content = new Content();
             ResolvedSchema resolvedSchema = ModelConverters.getInstance().resolveAsResolvedSchema(

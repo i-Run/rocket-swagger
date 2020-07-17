@@ -12,7 +12,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/MonoLoginForm"
+                "$ref" : "#/components/schemas/LoginForm"
               }
             }
           }
@@ -23,7 +23,16 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/MonoResponseEntityImmutableSetString"
+                  "uniqueItems" : true,
+                  "type" : "array",
+                  "properties" : {
+                    "empty" : {
+                      "type" : "boolean"
+                    }
+                  },
+                  "items" : {
+                    "type" : "string"
+                  }
                 }
               }
             }
@@ -34,11 +43,28 @@
   },
   "components" : {
     "schemas" : {
-      "MonoResponseEntityImmutableSetString" : {
-        "type" : "object"
+      "LoginForm" : {
+        "type" : "object",
+        "properties" : {
+          "username" : {
+            "type" : "string"
+          },
+          "password" : {
+            "type" : "string"
+          }
+        }
       },
-      "MonoLoginForm" : {
-        "type" : "object"
+      "ImmutableSetString" : {
+        "uniqueItems" : true,
+        "type" : "array",
+        "properties" : {
+          "empty" : {
+            "type" : "boolean"
+          }
+        },
+        "items" : {
+          "type" : "string"
+        }
       }
     }
   }

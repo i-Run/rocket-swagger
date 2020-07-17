@@ -33,11 +33,11 @@ public class OpenAPIReaderFullTest {
 
     @ParameterizedTest
     @ValueSource(classes = {
+            AuthenticationController.class,
             RestWithBodyController.class,
             RestWithConsumesController.class,
             SimpleRestController.class,
             SimpleRestWithParameters.class,
-            AuthenticationController.class
     })
     void should_generate_json_for_class(Class<?> clazz) throws IOException {
         OpenAPI openAPI = tested.read(clazz);

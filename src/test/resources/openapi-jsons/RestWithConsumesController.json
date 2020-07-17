@@ -12,7 +12,10 @@
           "content" : {
             "application/octet-stream" : {
               "schema" : {
-                "$ref" : "#/components/schemas/FluxFormTest"
+                "type" : "array",
+                "items" : {
+                  "$ref" : "#/components/schemas/FormTest"
+                }
               }
             }
           }
@@ -23,7 +26,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/MonoVoid"
+                  "type" : "object"
                 }
               }
             }
@@ -49,7 +52,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/MonoVoid"
+                  "type" : "object"
                 }
               }
             }
@@ -60,18 +63,6 @@
   },
   "components" : {
     "schemas" : {
-      "MonoVoid" : {
-        "type" : "object"
-      },
-      "FluxFormTest" : {
-        "type" : "object",
-        "properties" : {
-          "prefetch" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        }
-      },
       "FormTest" : {
         "type" : "object",
         "properties" : {

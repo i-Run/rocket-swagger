@@ -6,10 +6,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.introspect.AnnotatedField;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMethod;
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
+import fr.irun.openapi.swagger.utils.SpringTypeResolver;
 import io.swagger.v3.core.util.Json;
 import io.swagger.v3.core.util.ParameterProcessor;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.parameters.Parameter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.MatrixVariable;
@@ -26,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+@Slf4j
 public class DefaultParameterExtension extends AbstractOpenAPIExtension {
     private static final String QUERY_PARAM = "query";
     private static final String HEADER_PARAM = "header";
@@ -46,7 +49,8 @@ public class DefaultParameterExtension extends AbstractOpenAPIExtension {
                                                boolean includeRequestBody,
                                                JsonView jsonViewAnnotation,
                                                Iterator<OpenAPIExtension> chain) {
-        if (shouldIgnoreType(type, typesToSkip)) {
+        Type relevantType = SpringTypeResolver.resolve(type);
+        if (shouldIgnoreType(relevantType, typesToSkip)) {
             return ResolvedParameter.EMPTY;
         }
 
@@ -97,7 +101,7 @@ public class DefaultParameterExtension extends AbstractOpenAPIExtension {
                 List<Parameter> formParameters = new ArrayList<>();
                 List<Parameter> parameters = new ArrayList<>();
                 if (handleAdditionalAnnotation(
-                        parameters, formParameters, annotation, type, typesToSkip, classConsumes, methodConsumes,
+                        parameters, formParameters, annotation, relevantType, typesToSkip, classConsumes, methodConsumes,
                         components, includeRequestBody, jsonViewAnnotation)) {
                     ResolvedParameter extractParametersResult = ResolvedParameter.EMPTY;
                     extractParametersResult.getParameters().addAll(parameters);
@@ -116,7 +120,7 @@ public class DefaultParameterExtension extends AbstractOpenAPIExtension {
         } else if (includeRequestBody) {
             Parameter unknownParameter = ParameterProcessor.applyAnnotations(
                     null,
-                    type,
+                    relevantType,
                     annotations,
                     components,
                     classConsumes == null ? new String[0] : classConsumes.value(),
@@ -135,7 +139,7 @@ public class DefaultParameterExtension extends AbstractOpenAPIExtension {
         for (Parameter p : parameters) {
             Parameter processedParameter = ParameterProcessor.applyAnnotations(
                     p,
-                    type,
+                    relevantType,
                     annotations,
                     components,
                     classConsumes == null ? new String[0] : classConsumes.value(),
