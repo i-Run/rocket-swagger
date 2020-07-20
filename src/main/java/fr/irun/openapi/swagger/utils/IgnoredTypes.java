@@ -8,7 +8,7 @@ import java.lang.reflect.Type;
 
 public abstract class IgnoredTypes {
     /**
-     * @deprecated Use {@link fr.irun.openapi.swagger.readers.DefaultParameterExtension#shouldIgnoreClass(Class)} instead
+     * @deprecated Use {@code fr.irun.openapi.swagger.readers.DefaultParameterExtension#shouldIgnoreClass(Class)} instead
      */
     @Deprecated
     public static final ImmutableSet<Type> IGNORED_REQUESTBODY_TYPES = ImmutableSet.of(

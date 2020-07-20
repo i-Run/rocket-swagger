@@ -30,7 +30,7 @@ public final class OpenAPIExtensions {
         extensions = new ArrayList<>();
         ServiceLoader<OpenAPIExtension> loader = ServiceLoader.load(OpenAPIExtension.class);
         for (OpenAPIExtension ext : loader) {
-            log.debug("adding extension " + ext);
+            log.debug("adding extension {}", ext);
             extensions.add(ext);
         }
         extensions.add(new DefaultParameterExtension());

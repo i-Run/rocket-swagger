@@ -153,7 +153,6 @@ public class AuthenticationController {
             }
     )
     @GetMapping("/authority/list")
-//    @PreAuthorize("@authorityService.hasAuthority(authentication, 'SECURITY_AUTHORITY_READ')")
     public Flux<User> getAvailableAuthorities() {
         return Flux.empty();
     }

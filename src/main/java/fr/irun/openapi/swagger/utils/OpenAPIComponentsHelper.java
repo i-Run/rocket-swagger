@@ -23,31 +23,30 @@ import java.util.function.Function;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class OpenAPIComponentsHelper<T> {
     public static final OpenAPIComponentsHelper<Schema> SCHEMAS =
-            new OpenAPIComponentsHelper<>(Schema.class, Components::getSchemas, Components::setSchemas);
+            new OpenAPIComponentsHelper<>(Components::getSchemas, Components::setSchemas);
     public static final OpenAPIComponentsHelper<ApiResponse> API_RESPONSES =
-            new OpenAPIComponentsHelper<>(ApiResponse.class, Components::getResponses, Components::setResponses);
+            new OpenAPIComponentsHelper<>(Components::getResponses, Components::setResponses);
     public static final OpenAPIComponentsHelper<Parameter> PARAMETERS =
-            new OpenAPIComponentsHelper<>(Parameter.class, Components::getParameters, Components::setParameters);
+            new OpenAPIComponentsHelper<>(Components::getParameters, Components::setParameters);
     public static final OpenAPIComponentsHelper<Example> EXAMPLES =
-            new OpenAPIComponentsHelper<>(Example.class, Components::getExamples, Components::setExamples);
+            new OpenAPIComponentsHelper<>(Components::getExamples, Components::setExamples);
     public static final OpenAPIComponentsHelper<RequestBody> REQUEST_BODIES =
-            new OpenAPIComponentsHelper<>(RequestBody.class, Components::getRequestBodies, Components::setRequestBodies);
+            new OpenAPIComponentsHelper<>(Components::getRequestBodies, Components::setRequestBodies);
     public static final OpenAPIComponentsHelper<Header> HEADERS =
-            new OpenAPIComponentsHelper<>(Header.class, Components::getHeaders, Components::setHeaders);
+            new OpenAPIComponentsHelper<>(Components::getHeaders, Components::setHeaders);
     public static final OpenAPIComponentsHelper<SecurityScheme> SECURITY_SCHEMES =
-            new OpenAPIComponentsHelper<>(SecurityScheme.class, Components::getSecuritySchemes, Components::setSecuritySchemes);
+            new OpenAPIComponentsHelper<>(Components::getSecuritySchemes, Components::setSecuritySchemes);
     public static final OpenAPIComponentsHelper<Link> LINKS =
-            new OpenAPIComponentsHelper<>(Link.class, Components::getLinks, Components::setLinks);
+            new OpenAPIComponentsHelper<>(Components::getLinks, Components::setLinks);
     public static final OpenAPIComponentsHelper<Callback> CALLBACKS =
-            new OpenAPIComponentsHelper<>(Callback.class, Components::getCallbacks, Components::setCallbacks);
+            new OpenAPIComponentsHelper<>(Components::getCallbacks, Components::setCallbacks);
     public static final OpenAPIComponentsHelper<Object> EXTENSIONS =
-            new OpenAPIComponentsHelper<>(Object.class, Components::getExtensions, Components::setExtensions);
+            new OpenAPIComponentsHelper<>(Components::getExtensions, Components::setExtensions);
 
     public static final ImmutableList<OpenAPIComponentsHelper<?>> ALL_COMPONENTS_TYPE = ImmutableList.of(
             SCHEMAS, API_RESPONSES, PARAMETERS, EXAMPLES, REQUEST_BODIES, HEADERS, SECURITY_SCHEMES, LINKS, CALLBACKS, EXTENSIONS
     );
 
-    private final Class<T> clazz;
     private final Function<Components, Map<String, T>> getter;
     private final BiConsumer<Components, Map<String, T>> setter;
 

@@ -6,7 +6,6 @@ import fr.irun.openapi.swagger.readers.OpenAPIExtension;
 import fr.irun.openapi.swagger.readers.OpenAPIExtensions;
 import io.swagger.v3.core.util.ParameterProcessor;
 import io.swagger.v3.core.util.ReflectionUtils;
-import io.swagger.v3.oas.integration.api.OpenAPIConfiguration;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import org.apache.commons.lang3.StringUtils;
@@ -159,16 +158,6 @@ public final class ReaderUtils {
             return Optional.empty();
         }
         return Optional.of(list);
-    }
-
-    /**
-     * @param path   The path to check
-     * @param config The OpenAPI configuration object
-     * @return true if the path must be ignored
-     * @see ReaderUtils#isIgnored(String, Collection)
-     */
-    public static boolean isIgnored(String path, OpenAPIConfiguration config) {
-        return isIgnored(path, Optional.ofNullable(config.getIgnoredRoutes()).orElse(Collections.emptyList()));
     }
 
     /**

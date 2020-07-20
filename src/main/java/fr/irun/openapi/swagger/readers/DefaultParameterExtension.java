@@ -26,6 +26,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Slf4j
@@ -167,7 +168,7 @@ public class DefaultParameterExtension extends AbstractOpenAPIExtension {
                 final AnnotatedField field = propDef.getField();
                 final AnnotatedMethod setter = propDef.getSetter();
                 final AnnotatedMethod getter = propDef.getGetter();
-                final List<Annotation> paramAnnotations = new ArrayList<Annotation>();
+                final List<Annotation> paramAnnotations = new ArrayList<>();
                 final Iterator<OpenAPIExtension> extensions = OpenAPIExtensions.chain();
                 Type paramType = null;
 
@@ -175,7 +176,7 @@ public class DefaultParameterExtension extends AbstractOpenAPIExtension {
                 if (field != null) {
                     paramType = field.getType();
 
-                    for (final Annotation fieldAnnotation : field.annotations()) {
+                    for (final Annotation fieldAnnotation : field.getAllAnnotations().annotations()) {
                         if (!paramAnnotations.contains(fieldAnnotation)) {
                             paramAnnotations.add(fieldAnnotation);
                         }
@@ -190,7 +191,7 @@ public class DefaultParameterExtension extends AbstractOpenAPIExtension {
                         paramType = setter.getParameterType(0);
                     }
 
-                    for (final Annotation fieldAnnotation : setter.annotations()) {
+                    for (final Annotation fieldAnnotation : setter.getAllAnnotations().annotations()) {
                         if (!paramAnnotations.contains(fieldAnnotation)) {
                             paramAnnotations.add(fieldAnnotation);
                         }
@@ -204,7 +205,7 @@ public class DefaultParameterExtension extends AbstractOpenAPIExtension {
                         paramType = getter.getType();
                     }
 
-                    for (final Annotation fieldAnnotation : getter.annotations()) {
+                    for (final Annotation fieldAnnotation : getter.getAllAnnotations().annotations()) {
                         if (!paramAnnotations.contains(fieldAnnotation)) {
                             paramAnnotations.add(fieldAnnotation);
                         }
@@ -215,7 +216,6 @@ public class DefaultParameterExtension extends AbstractOpenAPIExtension {
                     continue;
                 }
 
-                // Re-process all Bean fields and let the default swagger-jaxrs/swagger-jersey-jaxrs processors do their thing
                 ResolvedParameter resolvedParameter = extensions.next().extractParameters(
                         paramAnnotations,
                         paramType,
@@ -228,36 +228,21 @@ public class DefaultParameterExtension extends AbstractOpenAPIExtension {
                         extensions);
 
                 List<Parameter> extractedParameters = resolvedParameter.getParameters();
-
+                String[] nonEmptyClassConsume = classConsumes == null ? new String[0] : classConsumes.value();
+                String[] nonEmptyMethodConsumes = methodConsumes == null ? new String[0] : methodConsumes.value();
                 for (Parameter p : extractedParameters) {
                     Parameter processedParam = ParameterProcessor.applyAnnotations(
-                            p,
-                            paramType,
-                            paramAnnotations,
-                            components,
-                            classConsumes == null ? new String[0] : classConsumes.value(),
-                            methodConsumes == null ? new String[0] : methodConsumes.value(),
-                            jsonViewAnnotation);
-                    if (processedParam != null) {
-                        parameters.add(processedParam);
-                    }
+                            p, paramType, paramAnnotations, components,
+                            nonEmptyClassConsume, nonEmptyMethodConsumes, jsonViewAnnotation);
+                    Optional.ofNullable(processedParam).ifPresent(parameters::add);
                 }
 
-                List<Parameter> extractedFormParameters =
-                        resolvedParameter.getFormParameters();
-
+                List<Parameter> extractedFormParameters = resolvedParameter.getFormParameters();
                 for (Parameter p : extractedFormParameters) {
                     Parameter processedParam = ParameterProcessor.applyAnnotations(
-                            p,
-                            paramType,
-                            paramAnnotations,
-                            components,
-                            classConsumes == null ? new String[0] : classConsumes.value(),
-                            methodConsumes == null ? new String[0] : methodConsumes.value(),
-                            jsonViewAnnotation);
-                    if (processedParam != null) {
-                        formParameters.add(processedParam);
-                    }
+                            p, paramType, paramAnnotations, components,
+                            nonEmptyClassConsume, nonEmptyMethodConsumes, jsonViewAnnotation);
+                    Optional.ofNullable(processedParam).ifPresent(formParameters::add);
                 }
 
                 processed = true;
