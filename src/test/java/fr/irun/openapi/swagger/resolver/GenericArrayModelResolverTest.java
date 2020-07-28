@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
 
 @SuppressWarnings("UnstableApiUsage")
 class GenericArrayModelResolverTest {
-
     private ModelConverter modelConverterMock;
     private ModelConverterContext contextMock;
 

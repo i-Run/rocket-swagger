@@ -21,7 +21,7 @@ public abstract class AbstractOpenAPIExtension implements OpenAPIExtension {
         if (chain.hasNext()) {
             return chain.next().extractOperationMethod(method, chain);
         } else {
-            return null;
+            return "";
         }
     }
 

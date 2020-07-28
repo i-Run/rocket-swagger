@@ -25,7 +25,7 @@ public final class ModelConversionUtils {
     private static final Pattern FULL_CLASS_NAME_PATTERN = Pattern.compile(FULL_CLASS_NAME_STRING_PATTERN);
 
     /**
-     * {@link fr.irun.openapi.swagger.utils.VisitableGenericType.Visitor} used to extract the first inner type from a Generic type
+     * {@link VisitableGenericType.Visitor} used to extract the first inner type from a Generic type
      */
     private static final VisitableGenericType.Visitor GENERIC_FIRST_INNER_VISITOR = new VisitableGenericType.Visitor() {
         @Override
