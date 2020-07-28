@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.type.TypeBase;
 import com.fasterxml.jackson.databind.type.TypeBindings;
+import io.swagger.v3.core.converter.AnnotatedType;
 import org.assertj.core.util.Arrays;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -41,8 +42,7 @@ class ModelConversionUtilsTest {
     @ParameterizedTest
     @MethodSource("params_should_get_resolution_strategy")
     void should_get_resolution_strategy(Class<?> inputClass, ResolutionStrategy expectedResult) {
-        final Type inputType = mock(Type.class);
-        when(inputType.getTypeName()).thenReturn("[simple type : " + inputClass.getName() + "]");
+        final AnnotatedType inputType = new AnnotatedType(inputClass);
         assertThat(ModelConversionUtils.getResolutionStrategy(inputType)).isEqualTo(expectedResult);
     }
 
@@ -79,15 +79,15 @@ class ModelConversionUtilsTest {
         when(typeBase.getBindings()).thenReturn(typeBindings);
 
         return Stream.of(
-                Arguments.of(parameterizedType, innerTypes[0]),
-                Arguments.of(typeBase, innerTypes[0])
+                Arguments.of(new AnnotatedType(parameterizedType), new AnnotatedType(innerTypes[0])),
+                Arguments.of(new AnnotatedType(typeBase), new AnnotatedType(innerTypes[0]))
         );
     }
 
     @ParameterizedTest
     @MethodSource("params_should_extract_generic_inner_type")
-    void should_extract_generic_inner_type(Type genericType, Type expectedInnerType) {
-        final Optional<Type> actual = ModelConversionUtils.extractGenericFirstInnerType(genericType);
+    void should_extract_generic_inner_type(AnnotatedType genericType, AnnotatedType expectedInnerType) {
+        final Optional<AnnotatedType> actual = ModelConversionUtils.extractGenericFirstInnerType(genericType);
         assertThat(actual).isNotNull();
         assertThat(actual).contains(expectedInnerType);
     }
@@ -103,17 +103,17 @@ class ModelConversionUtilsTest {
         final Type type = mock(Type.class);
 
         return Stream.of(
-                Arguments.of(parameterizedType),
-                Arguments.of(typeBase),
-                Arguments.of(type),
-                Arguments.of((Type) null)
+                Arguments.of(new AnnotatedType(parameterizedType)),
+                Arguments.of(new AnnotatedType(typeBase)),
+                Arguments.of(new AnnotatedType(type)),
+                Arguments.of((AnnotatedType) null)
         );
     }
 
     @ParameterizedTest
     @MethodSource("params_should_extract_empty_generic_inner_type")
-    void should_extract_empty_generic_inner_type(Type type) {
-        final Optional<Type> actual = ModelConversionUtils.extractGenericFirstInnerType(type);
+    void should_extract_empty_generic_inner_type(AnnotatedType type) {
+        final Optional<AnnotatedType> actual = ModelConversionUtils.extractGenericFirstInnerType(type);
         assertThat(actual).isEmpty();
     }
 }

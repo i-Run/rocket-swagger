@@ -1,7 +1,8 @@
 package fr.irun.openapi.swagger.utils;
 
+import io.swagger.v3.core.converter.AnnotatedType;
+
 import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.Optional;
 
 final class VisitableParameterizedType implements VisitableGenericType {
@@ -17,7 +18,7 @@ final class VisitableParameterizedType implements VisitableGenericType {
     }
 
     @Override
-    public Optional<Type> getInnerType(Visitor visitor) {
+    public Optional<AnnotatedType> getInnerType(Visitor visitor) {
         return visitor.getInnerTypeFromParameterizedType(parameterizedType);
     }
 }

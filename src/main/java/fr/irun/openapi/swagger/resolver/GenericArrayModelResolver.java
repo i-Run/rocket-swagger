@@ -2,15 +2,12 @@ package fr.irun.openapi.swagger.resolver;
 
 import fr.irun.openapi.swagger.utils.ModelConversionUtils;
 import fr.irun.openapi.swagger.utils.ResolutionStrategy;
-import io.swagger.converter.ModelConverter;
-import io.swagger.converter.ModelConverterContext;
-import io.swagger.models.Model;
-import io.swagger.models.properties.ArrayProperty;
-import io.swagger.models.properties.Property;
+import io.swagger.v3.core.converter.AnnotatedType;
+import io.swagger.v3.core.converter.ModelConverter;
+import io.swagger.v3.core.converter.ModelConverterContext;
+import io.swagger.v3.oas.models.media.Schema;
 import lombok.Getter;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Type;
 import java.util.Iterator;
 
 /**
@@ -36,18 +33,9 @@ public class GenericArrayModelResolver implements RocketModelResolver {
     }
 
     @Override
-    public Property resolveProperty(Type type, ModelConverterContext context, Annotation[] annotations, Iterator<ModelConverter> iterator) {
-        // Property of type MyWrapper<T> converted to T[]
+    public Schema<?> resolve(AnnotatedType type, ModelConverterContext context, Iterator<ModelConverter> chain) {
         return ModelConversionUtils.extractGenericFirstInnerType(type)
-                .map(t -> baseConverter.resolveProperty(t, context, annotations, iterator))
-                .map(ArrayProperty::new)
-                .orElse(null);
-    }
-
-    @Override
-    public Model resolve(Type type, ModelConverterContext context, Iterator<ModelConverter> iterator) {
-        return ModelConversionUtils.extractGenericFirstInnerType(type)
-                .map(t -> baseConverter.resolve(t, context, iterator))
+                .map(t -> baseConverter.resolve(t, context, chain))
                 .orElse(null);
     }
 }

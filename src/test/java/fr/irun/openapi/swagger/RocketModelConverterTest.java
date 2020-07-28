@@ -4,6 +4,7 @@ package fr.irun.openapi.swagger;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
+import com.google.common.reflect.TypeToken;
 import fr.irun.openapi.swagger.resolver.DateTimeModelResolver;
 import fr.irun.openapi.swagger.resolver.DefaultModelResolver;
 import fr.irun.openapi.swagger.resolver.GenericArrayModelResolver;
@@ -11,20 +12,20 @@ import fr.irun.openapi.swagger.resolver.GenericModelResolver;
 import fr.irun.openapi.swagger.resolver.MapModelResolver;
 import fr.irun.openapi.swagger.resolver.RocketModelResolver;
 import fr.irun.openapi.swagger.utils.ResolutionStrategy;
-import io.swagger.converter.ModelConverter;
-import io.swagger.converter.ModelConverterContext;
-import io.swagger.models.Model;
-import io.swagger.models.properties.Property;
+import io.swagger.v3.core.converter.AnnotatedType;
+import io.swagger.v3.core.converter.ModelConverter;
+import io.swagger.v3.core.converter.ModelConverterContext;
+import io.swagger.v3.oas.models.media.Schema;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
+import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -40,7 +41,6 @@ import static org.mockito.Mockito.when;
 class RocketModelConverterTest {
 
     private static final Iterator<ModelConverter> ITERATOR = Iterators.forArray();
-    private static final Annotation[] ANNOTATIONS = new Annotation[]{null};
 
     private ImmutableMap<ResolutionStrategy, RocketModelResolver> resolverMocks;
 
@@ -86,53 +86,36 @@ class RocketModelConverterTest {
         }
     }
 
+    @SuppressWarnings("UnstableApiUsage")
     private static Stream<Arguments> params_for_resolution() {
+
         return Stream.of(
-                Arguments.of(ResolutionStrategy.DATE_TIME, Instant.class.getName()),
-                Arguments.of(ResolutionStrategy.DATE_TIME, LocalDateTime.class.getName()),
-                Arguments.of(ResolutionStrategy.DATE_TIME, java.util.Date.class.getName()),
-                Arguments.of(ResolutionStrategy.DATE_TIME, java.sql.Date.class.getName()),
-                Arguments.of(ResolutionStrategy.WRAP_GENERIC, Mono.class.getName()),
-                Arguments.of(ResolutionStrategy.WRAP_GENERIC, "org.springframework.http.ResponseEntity<java.lang.Integer>"),
-                Arguments.of(ResolutionStrategy.WRAP_GENERIC_ARRAY, Flux.class.getName()),
-                Arguments.of(ResolutionStrategy.MAP, JsonNode.class.getName()),
-                Arguments.of(ResolutionStrategy.DEFAULT, String.class.getName())
+                Arguments.of(ResolutionStrategy.DATE_TIME, Instant.class),
+                Arguments.of(ResolutionStrategy.DATE_TIME, LocalDateTime.class),
+                Arguments.of(ResolutionStrategy.DATE_TIME, java.util.Date.class),
+                Arguments.of(ResolutionStrategy.DATE_TIME, java.sql.Date.class),
+                Arguments.of(ResolutionStrategy.WRAP_GENERIC, Mono.class),
+                Arguments.of(ResolutionStrategy.WRAP_GENERIC, new TypeToken<ResponseEntity<Integer>>() {
+                }.getType()),
+                Arguments.of(ResolutionStrategy.WRAP_GENERIC_ARRAY, Flux.class),
+                Arguments.of(ResolutionStrategy.MAP, JsonNode.class),
+                Arguments.of(ResolutionStrategy.DEFAULT, String.class)
         );
     }
 
-    @ParameterizedTest
-    @MethodSource("params_for_resolution")
-    void should_resolve_property(ResolutionStrategy strategy, String className) {
-        final RocketModelResolver resolverMock = resolverMocks.get(strategy);
-        assertThat(resolverMock).withFailMessage("No resolver mock associated with strategy %s", strategy).isNotNull();
-
-        final Type inputType = mock(Type.class);
-        when(inputType.getTypeName()).thenReturn(String.format("[simple type, %s]", className));
-
-        final Property expected = mock(Property.class);
-        when(resolverMock.resolveProperty(inputType, contextMock, ANNOTATIONS, ITERATOR)).thenReturn(expected);
-
-        final Property actual = tested.resolveProperty(inputType, contextMock, ANNOTATIONS, ITERATOR);
-        assertThat(actual).isNotNull();
-        assertThat(actual).isSameAs(expected);
-
-        verify(resolverMock).resolveProperty(inputType, contextMock, ANNOTATIONS, ITERATOR);
-        resolverMocks.values().forEach(Mockito::verifyNoMoreInteractions);
-    }
 
     @ParameterizedTest
     @MethodSource("params_for_resolution")
-    void should_resolve_model(ResolutionStrategy strategy, String className) {
+    void should_resolve_model(ResolutionStrategy strategy, Type javaType) {
         final RocketModelResolver resolverMock = resolverMocks.get(strategy);
         assertThat(resolverMock).withFailMessage("No resolver mock associated with strategy %s", strategy).isNotNull();
 
-        final Type inputType = mock(Type.class);
-        when(inputType.getTypeName()).thenReturn(String.format("[simple type, %s]", className));
+        final AnnotatedType inputType = new AnnotatedType(javaType);
 
-        final Model expected = mock(Model.class);
+        final Schema<?> expected = mock(Schema.class);
         when(resolverMock.resolve(inputType, contextMock, ITERATOR)).thenReturn(expected);
 
-        final Model actual = tested.resolve(inputType, contextMock, ITERATOR);
+        final Schema<?> actual = tested.resolve(inputType, contextMock, ITERATOR);
         assertThat(actual).isNotNull();
         assertThat(actual).isSameAs(expected);
 
