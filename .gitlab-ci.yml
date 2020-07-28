@@ -106,8 +106,10 @@ maven:deploy:
   script: |
     mvn ${MAVEN_CLI_OPTS} deploy \
       -DskipTests \
-      -DaltSnapshotDeploymentRepository="nexus::default::${NEXUS_SERVER_URL}/snapshots/" \
-      -DaltReleaseDeploymentRepository="nexus::default::${NEXUS_SERVER_URL}/releases/"
+      -DaltDeploymentRepository="releases::default::https://nexus.i-run.fr/repository/releases/" \
+      -DaltDeploymentRepository="nexus::default::https://nexus.i-run.fr/repository/snapshots/" \
+      -DaltSnapshotDeploymentRepository="nexus" \
+      -DaltReleaseDeploymentRepository="releases"
   only:
     - develop
     - master
