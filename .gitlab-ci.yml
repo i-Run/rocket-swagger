@@ -7,6 +7,7 @@ variables:
   # when running from the command line.
   # `installAtEnd` and `deployAtEnd` are only effective with recent version of the corresponding plugins.
   MAVEN_CLI_OPTS: "--batch-mode -Dmaven.repo.local=${CI_PROJECT_DIR}/.m2/repository --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
+  NEXUS_SERVER_URL: "https://nexus.i-run.fr/repository"
 
 cache:
   key: ${CI_COMMIT_REF_SLUG}
@@ -102,7 +103,11 @@ maven:deploy:
   stage: deploy
   dependencies:
     - maven:build
-  script: mvn ${MAVEN_CLI_OPTS} deploy -DskipTests
+  script: |
+    mvn ${MAVEN_CLI_OPTS} deploy \
+      -DskipTests \
+      -DaltSnapshotDeploymentRepository="nexus::default::${NEXUS_SERVER_URL}/snapshots/" \
+      -DaltReleaseDeploymentRepository="nexus::default::${NEXUS_SERVER_URL}/releases/"
   only:
     - develop
     - master
