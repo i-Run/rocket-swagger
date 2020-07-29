@@ -66,6 +66,8 @@ function getDependencies() {
 
     dependencies+=( "$(mvn "${MVN_ARGS[@]}" dependency:tree -DexcludeTransitive=true \
                     -DoutputFile=/dev/stdout -q -f "$prefix" | grep -v INFO | grep -oP "${IRUN_PATTERN}" )" )
+    dependencies+=( "$(mvn "${MVN_ARGS[@]}" dependency:display-ancestors -DexcludeTransitive=true -DoutputFile=/dev/stdout \
+                    | grep -oP "<- ${IRUN_PATTERN}"| sed 's/<- //' | sed -r "s/(fr.irun:.*:)/\1:/" )" )
     dependencies=( "$(sort -u <<<"${dependencies[*]}")" )
 
     debug "${dependencies[@]}"
@@ -178,7 +180,8 @@ function installDependencies() {
 
     IFS=$'\n' repositories=( "$(sort -u <<<"${repositories[*]}")" )
         
-    debug "repo: \\n${repositories[*]}"
+    debug "repo:
+${repositories[*]}"
     for r in ${repositories[*]}; do
         local -a rr; IFS=' ' read -r -a rr <<< "$r"
         installDependency "${rr[@]}"
