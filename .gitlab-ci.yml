@@ -106,10 +106,10 @@ maven:deploy:
   script: |
     mvn ${MAVEN_CLI_OPTS} deploy \
       -DskipTests \
-      -DaltDeploymentRepository="releases::default::https://nexus.i-run.fr/repository/releases/" \
+      -DaltDeploymentRepository="ossrh::default::https://oss.sonatype.org/service/local/staging/deploy/maven2/" \
       -DaltDeploymentRepository="nexus::default::https://nexus.i-run.fr/repository/snapshots/" \
       -DaltSnapshotDeploymentRepository="nexus" \
-      -DaltReleaseDeploymentRepository="releases"
+      -DaltReleaseDeploymentRepository="ossrh"
   only:
     - develop
     - master
