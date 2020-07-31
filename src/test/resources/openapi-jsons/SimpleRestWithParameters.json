@@ -1,0 +1,193 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "test",
+    "version" : "1.0.0"
+  },
+  "paths" : {
+    "/parameterWithoutAnnotation/{propertyPath}" : {
+      "get" : {
+        "operationId" : "parameterWithoutAnnotation",
+        "parameters" : [ {
+          "name" : "propertyPath",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parameterWithAnnotation/{propertyPath}" : {
+      "get" : {
+        "operationId" : "parameterWithAnnotation",
+        "parameters" : [ {
+          "name" : "propertyPath",
+          "in" : "path",
+          "description" : "The user name for login",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/namedParameterWithoutAnnotation/{propertyPath}" : {
+      "get" : {
+        "operationId" : "namedParameterWithoutAnnotation",
+        "parameters" : [ {
+          "name" : "propertyPath",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/namedParameterDiffWithoutAnnotation/{propertyPath}" : {
+      "get" : {
+        "operationId" : "namedParameterDiffWithoutAnnotation",
+        "parameters" : [ {
+          "name" : "propertyPath",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/namedParameterDiffWithAnnotation/{propertyPath}" : {
+      "get" : {
+        "operationId" : "namedParameterDiffWithAnnotation",
+        "parameters" : [ {
+          "name" : "propertyPath",
+          "in" : "path",
+          "description" : "The user name for login",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/methodWithMoreThanTwoParameters/{param1}/{param2}/{param3}" : {
+      "get" : {
+        "operationId" : "methodWithMoreThanTwoParameters",
+        "parameters" : [ {
+          "name" : "param1",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "param2",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "param3",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
