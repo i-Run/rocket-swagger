@@ -67,7 +67,7 @@ maven:release:
   dependencies:
   - maven:build
   before_script:
-    - echo ${GPG_PASSPHRASE} | gpg2 --batch --import "${GPG_SECRET_KEY}"
+    - echo ${GPG_PASSPHRASE} | gpg --batch --import "${GPG_SECRET_KEY}"
     - git checkout -B "$CI_BUILD_REF_NAME"
     - mvn ${MAVEN_CLI_OPTS} -DdryRun=true release:prepare
     - git clean -f
