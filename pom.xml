@@ -10,7 +10,7 @@
 
     <groupId>fr.irun</groupId>
     <artifactId>rocket-swagger</artifactId>
-    <version>1.2.0-SNAPSHOT</version>
+    <version>1.2.0</version>
     <packaging>jar</packaging>
 
     <name>Rocket Swagger</name>
@@ -27,7 +27,7 @@
         <connection>scm:git:git@gitlab.i-run.fr:nora/tooling/rocket-swagger.git</connection>
         <developerConnection>scm:git:git@gitlab.i-run.fr:nora/tooling/rocket-swagger.git</developerConnection>
         <url>https://gitlab.i-run.fr/nora/tooling/rocket-swagger.git</url>
-        <tag>HEAD</tag>
+        <tag>1.2.0</tag>
     </scm>
 
     <properties>
