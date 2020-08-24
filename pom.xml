@@ -361,5 +361,24 @@
         </profile>
     </profiles>
 
-
+    <developers>
+        <developer>
+            <id>bnwander</id>
+            <name>Bertrand Neuenschwander</name>
+            <organization>i-Run</organization>
+            <organizationUrl>https://www.i-run.fr</organizationUrl>
+        </developer>
+        <developer>
+            <id>cdeverre</id>
+            <name>Christophe Deverre</name>
+            <organization>i-Run</organization>
+            <organizationUrl>https://www.i-run.fr</organizationUrl>
+        </developer>
+        <developer>
+            <id>fcombes</id>
+            <name>Frédéric Combes</name>
+            <organization>i-Run</organization>
+            <organizationUrl>https://www.i-run.fr</organizationUrl>
+        </developer>
+    </developers>
 </project>

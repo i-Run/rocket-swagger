@@ -15,7 +15,6 @@ import io.swagger.v3.oas.integration.api.OpenAPIConfiguration;
 import io.swagger.v3.oas.integration.api.OpenApiReader;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -229,8 +228,8 @@ public class SpringOpenApiReader implements OpenApiReader {
                 if (openAPI.getPaths() != null && openAPI.getPaths().get(path.getKey()) != null) {
                     originalPathItem = openAPI.getPaths().get(path.getKey());
                     for (OpenApiHttpMethod value : OpenApiHttpMethod.values()) {
-                        Operation operation = value.pathItemGetter.apply(path.getValue());
-                        value.pathItemSetter.apply(originalPathItem, operation);
+                        Optional.ofNullable(value.pathItemGetter.apply(path.getValue()))
+                                .ifPresent(o -> value.pathItemSetter.apply(originalPathItem, o));
                     }
                 } else {
                     originalPathItem = path.getValue();
