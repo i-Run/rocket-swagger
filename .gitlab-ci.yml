@@ -83,7 +83,7 @@ maven:release:
     - git clone "git@gitlab.i-run.fr:${CI_PROJECT_PATH}.git"
     - cd "${CI_PROJECT_NAME}"
     - git checkout master
-    - git merge --no-ff -m "[maven-release][skip CI] Merge release in master" origin/develop~1
+    - git merge --no-ff -m "[maven-release][skip CI] Merge release in master" origin/develop
     - git push origin master
   when: manual
   only:
