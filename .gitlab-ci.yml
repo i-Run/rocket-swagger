@@ -39,7 +39,8 @@ shell-check:
   stage: test
   script:
     - shellcheck .gitlab/*.sh
-    - shellcheck .gitlab/scripts/*.sh
+    - |
+      [[ ! -d .gitlab/scripts ]] || shellcheck .gitlab/scripts/*.sh
 
 maven:build:
   stage: build
@@ -83,10 +84,7 @@ maven:test:
 
 🖍yaml:lint:
   stage: test
-  image: python:3-slim
-  before_script:
-    - export PATH="$PATH:~/.local/bin"
-    - pip install --user yamllint
+  image: d.i-run.fr/irun-python-tester:20210526.d703e66a
   script:
     - yamllint --strict .
 
@@ -156,24 +154,3 @@ maven:deploy-snapshot:
   rules:
     - if: '$CI_COMMIT_REF_NAME == "develop"'
       when: on_success
-
-📣mattermost:failure:
-  stage: notify
-  allow_failure: true
-  variables:
-    GIT_STRATEGY: none
-  script:
-    - |
-      curl --header "PRIVATE-TOKEN: ${BRIGIT_ACCESS_TOKEN}"\
-        -s -o "./parse_pipeline_error.sh"\
-        "https://gitlab.i-run.fr/api/v4/projects/${CI_PROJECT_ID}\
-        /repository/files/.gitlab%2Fscripts%2Fparse_pipeline_error.sh/raw?ref=${CI_COMMIT_REF_NAME}"
-    - chmod +x ./parse_pipeline_error.sh
-    - export JOB_ERROR=$(./parse_pipeline_error.sh
-        -p "${CI_PROJECT_ID}" -P "${CI_PIPELINE_ID}" -t "${BRIGIT_ACCESS_TOKEN}")
-    - curl -s -o "./user-mapping.sh" "https://gitlab.i-run.fr/share/snippet/snippets/9/raw"
-    - curl -s -o "./feature-fail-v2.sh" "https://gitlab.i-run.fr/share/snippet/snippets/20/raw"
-    - source "./user-mapping.sh" && chmod +x ./feature-fail-v2.sh
-    - CHANNEL="info-gitlab" ./feature-fail-v2.sh
-    - CHANNEL="@${USERS[$GITLAB_USER_LOGIN]:-$GITLAB_USER_LOGIN}" ./feature-fail-v2.sh
-  when: on_failure
