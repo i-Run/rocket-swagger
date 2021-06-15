@@ -16,6 +16,7 @@ import io.swagger.v3.oas.integration.api.OpenApiReader;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.PathItem;
+import io.swagger.v3.oas.models.examples.Example;
 import io.swagger.v3.oas.models.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -31,6 +32,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -242,6 +244,11 @@ public class SpringOpenApiReader implements OpenApiReader {
         final Components components = globalElementReader.getComponents();
         // if no components object is defined in openApi instance passed by client, set openAPI.components to resolved components (if not empty)
         if (!OpenAPIComponentsHelper.isNullOrEmpty((components))) {
+            components.getSchemas().forEach((key, schema) -> {
+                if (Objects.nonNull(schema) && Objects.nonNull(schema.getExample())) {
+                    components.addExamples(key, new Example().value(schema.getExample()));
+                }
+            });
             Components mergedComponents = OpenAPIComponentsHelper.mergeAllComponents(openAPI.getComponents(), components);
             if (!OpenAPIComponentsHelper.isNullOrEmpty(mergedComponents)) {
                 openAPI.setComponents(mergedComponents);
