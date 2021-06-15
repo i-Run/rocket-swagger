@@ -1,3 +1,5 @@
+## Rocket-swagger [![](https://img.shields.io/github/v/release/i-Run/rocket-swagger.svg)](https://gitHub.com/i-Run/rocket-swagger/releases/) [![GitHub license](https://img.shields.io/github/license/i-Run/rocket-swagger.svg)](https://gitHub.com/i-Run/rocket-swagger/blob/master/LICENSE.txt)
+
 ## Description of the repository
 
 This repository contains an implementation of [swagger ModelConverter](https://static.javadoc.io/io.swagger/swagger-core/1.5.10/io/swagger/converter/ModelConverter.html), used to generate OpenAPI documentation.
