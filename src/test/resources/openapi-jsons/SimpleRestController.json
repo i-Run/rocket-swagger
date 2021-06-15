@@ -61,7 +61,24 @@
         "operationId" : "listStringsWithoutDefaultApiResponse",
         "responses" : {
           "401" : {
-            "description" : "- INVALID_PASSWORD -> The password associated to this account is invalid\n"
+            "description" : "- INVALID_PASSWORD -> The password associated to this account is invalid\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/InvalidPassword"
+                    }
+                  ]
+                },
+                "examples": {
+                  "INVALID_PASSWORD": {
+                    "description": "INVALID_PASSWORD",
+                    "$ref": "#/components/examples/InvalidPassword"
+                  }
+                }
+              }
+            }
           },
           "200" : {
             "description" : "successful operation",
@@ -98,9 +115,29 @@
             }
           },
           "401" : {
-            "description" : "- INVALID_PASSWORD -> The password associated to this account is invalid\n"
+            "description" : "- INVALID_PASSWORD -> The password associated to this account is invalid\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidPassword"
+                }
+              }
+            }
           }
         }
+      }
+    }
+  },
+  "components": {
+    "examples": {
+      "InvalidPassword": {
+        "value": "{Password: invalid}"
+      }
+    },
+    "schemas": {
+      "InvalidPassword": {
+        "example": "{Password: invalid}",
+        "type": "object"
       }
     }
   }
