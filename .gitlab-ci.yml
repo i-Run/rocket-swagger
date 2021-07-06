@@ -95,8 +95,16 @@ maven:release:
     - job: maven:build
       artifacts: true
   script:
-    - git checkout -B "$CI_BUILD_REF_NAME"
-    - mvn ${MAVEN_CLI_OPTS} -DdryRun=true release:prepare
+    - git checkout -B "$CI_COMMIT_REF_NAME"
+    - mvn -DdryRun=true versions:update-properties
+    - mvn ${MAVEN_CLI_OPTS} -DdryRun=true release:prepare \
+      -DtagNameFormat="@{version}" \
+      -DupdateDependencies=false \
+      -DscmCommentPrefix="[maven-release][skip CI] " \
+      -DdevelopmentVersion="$(.gitlab/bumpVersion.sh)" \
+    - git clean -f
+    - mvn versions:update-properties
+    - git commit -a -m "[maven-release][skip CI] Update properties version"
     - git clean -f
     - |
       mvn ${MAVEN_CLI_OPTS} \
