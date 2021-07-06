@@ -54,8 +54,9 @@ maven:build:
 
 🖍maven:checkstyle:
   stage: test
-  dependencies:
-    - maven:build
+  needs:
+    - job: maven:build
+      artifacts: true
   cache:
     policy: pull
   script:
@@ -63,8 +64,9 @@ maven:build:
 
 📚maven:javadoc:
   stage: test
-  dependencies:
-    - maven:build
+  needs:
+    - job: maven:build
+      artifacts: true
   cache:
     policy: pull
   script:
@@ -72,8 +74,9 @@ maven:build:
 
 maven:test:
   stage: test
-  dependencies:
-    - maven:build
+  needs:
+    - job: maven:build
+      artifacts: true
   script: mvn ${MAVEN_CLI_OPTS} test -Pintegration
   artifacts:
     reports:
@@ -88,8 +91,9 @@ maven:test:
 
 maven:release:
   stage: release
-  dependencies:
-    - maven:build
+  needs:
+    - job: maven:build
+      artifacts: true
   script:
     - git checkout -B "$CI_BUILD_REF_NAME"
     - mvn ${MAVEN_CLI_OPTS} -DdryRun=true release:prepare
@@ -119,8 +123,9 @@ maven:release:
 
 maven:sonar:
   stage: deploy
-  dependencies:
-    - maven:build
+  needs:
+    - job: maven:build
+      artifacts: true
   allow_failure: true
   cache:
     policy: pull
@@ -132,8 +137,11 @@ maven:sonar:
 
 maven:deploy:
   stage: deploy
-  dependencies:
-    - maven:build
+  needs:
+    - job: maven:build
+      artifacts: true
+    - job: maven:test
+      artifacts: true
   script: mvn ${MAVEN_CLI_OPTS} deploy -DskipTests
   rules:
     - if: >
