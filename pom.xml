@@ -30,7 +30,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <swagger.version>2.1.9</swagger.version>
-        <spring.version>5.2.1.RELEASE</spring.version>
+        <spring.version>6.0.0</spring.version>
         <reactor.version>3.3.0.RELEASE</reactor.version>
         <lombok.version>1.18.2</lombok.version>
         <jsr305.version>3.0.2</jsr305.version>
